@@ -1,8 +1,9 @@
 import pygame
+import math
 
 pygame.init()
 
-screen = pygame.display.set_mode((800, 600))
+screen = pygame.display.set_mode((1500, 900))
 
 running = True
 
@@ -10,6 +11,9 @@ debugging = True
 
 FPS = 30
 fpsClock = pygame.time.Clock()
+
+def CalcDistance(pointA, pointB):
+    return math.sqrt((pointA.cx - pointB.cx)**2 + (pointA.cy - pointB.cy)**2) - pointA.radius - pointB.radius
 
 class Island:
     def __init__(self,colour, radius, cx, cy):
@@ -36,11 +40,12 @@ class BoundingBox:
         self.screen.blit(self.s,(self.lx,self.ty))
 
     def scan_for_player(self,player):
-        if self.lx < player.cx - 5 and player.cx + 5 < (self.lx + self.width) and self.ty < player.cy - 5 and (self.lx + self.height) > player.cy + 5:
-            print("Player detected")
+        if self.lx < player.hcx - 5 and player.hcx + 5 < (self.lx + self.width) and self.ty < player.hcy - 5 and (self.lx + self.height - 45) > player.hcy:
+            print("player detected")
             player.in_camera = True
         else:
             player.in_camera = False
+
 
 class Player:
     def __init__(self,cx,cy):
@@ -49,9 +54,25 @@ class Player:
         self.vy = 0
         self.vx = 0
         self.in_camera = True
+        self.hcx = cx
+        self.hcy = cy
+        self.radius = 25
     def draw(self):
-        pygame.draw.circle(screen, (0,0,0), (self.cx, self.cy),25)
+        pygame.draw.circle(screen, (0,0,0), (self.cx, self.cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
+
+class Enemy:
+    def __init__(self,cx,cy):
+        self.cx = cx
+        self.cy = cy
+        self.radius = 25
+
+    def draw(self):
+        pygame.draw.circle(screen, (0,0,0), (self.cx, self.cy),self.radius)
+
+    def beeline(self,player):
+        pass
+
 
 class GameWorld:
     def __init__(self,player):
@@ -86,6 +107,8 @@ camera_follow = BoundingBox()
 player = Player(400,300)
 world = GameWorld(player)
 world.objects.append(island)
+enemy = Enemy(750,450)
+world.objects.append(enemy)
 while running:
     screen.fill((107, 191, 255))
     island.draw()
@@ -107,79 +130,100 @@ while running:
         if keys[pygame.K_w]:
             if move_ticker == 0:
                 move_ticker = 10
-                player.cy -= 3
+                player.hcy -= 3
+                player.cy = player.hcy
                 #print("Moving up",player.cx,player.cy)
                 if keys[pygame.K_a]:
-                    player.cx -= 3
+                    player.hcx -= 3
+                    player.cx = player.hcx
                     #print("Moving up and left")
                 if keys[pygame.K_d]:
-                    player.cx += 3
+                    player.hcx += 3
+                    player.cx = player.hcx
 
         if keys[pygame.K_s]:
             if move_ticker == 0:
                 move_ticker = 10
-                player.cy += 3
+                player.hcy += 3
+                player.cy = player.hcy
                 #print("Moving down")
                 if keys[pygame.K_a]:
-                    player.cx -= 3
+                    player.hcx -= 3
+                    player.cx = player.hcx
                 if keys[pygame.K_d]:
                     #print("Moving down and right")
-                    player.cx += 3
+                    player.hcx += 3
+                    player.cx = player.hcx
 
         if keys[pygame.K_a]:
             if move_ticker == 0:
                 move_ticker = 10
-                player.cx -= 3
+                player.hcx -= 3
+                player.cx = player.hcx
                 #print("moving left")
 
         if keys[pygame.K_d]:
             if move_ticker == 0:
                 move_ticker = 10
-                player.cx += 3
+                player.hcx += 3
+                player.cx = player.hcx
                 #print("moving right")
 
     else:
-        if keys[pygame.K_w]:
+        moved = False
+        if keys[pygame.K_w] and not moved:
             if move_ticker == 0:
-                move_ticker = 10
-                world.move_camera(["up"])
-                if keys[pygame.K_a]:
+                if not keys[pygame.K_a] and not keys[pygame.K_d]:
+                    move_ticker = 10
+                    world.move_camera(["up"])
+                    player.hcy = player.cy - 3
+                    moved = True
+                if keys[pygame.K_a] and not moved:
                     world.move_camera(["up", "left"])
-                if keys[pygame.K_d]:
+                    player.hcx = player.cx - 3
+                    moved = True
+                if keys[pygame.K_d] and not moved:
                     world.move_camera(["up", "right"])
-                if keys[pygame.K_s]:
-                    player.cy = player.cy + 1
+                    player.hcx = player.cx + 3
+                    moved = True
 
-        if keys[pygame.K_s]:
+        if keys[pygame.K_s] and not moved:
             if move_ticker == 0:
-                move_ticker = 10
-                world.move_camera(["down"])
-                if keys[pygame.K_a]:
+                if not keys[pygame.K_a] and not keys[pygame.K_d]:
+                    move_ticker = 10
+                    world.move_camera(["down"])
+                    player.hcy = player.cy + 3
+                    moved = True
+                if keys[pygame.K_a] and not moved:
                     world.move_camera(["down", "left"])
-                if keys[pygame.K_d]:
+                    player.hcx = player.cx - 3
+                    moved = True
+                if keys[pygame.K_d] and not moved:
                     world.move_camera(["down", "right"])
-                if keys[pygame.K_w]:
-                    player.cy = player.cy - 1
+                    player.hcx = player.cx + 3
+                    moved = True
 
-        if keys[pygame.K_a]:
+        if keys[pygame.K_a] and not moved:
             if move_ticker == 0:
                 move_ticker = 10
                 world.move_camera(["left"])
-            if keys[pygame.K_d]:
-                player.cx = player.cx + 1
+                player.hcx = player.cx - 3
+                moved = True
 
-        if keys[pygame.K_d]:
+
+        if keys[pygame.K_d] and not moved:
             if move_ticker == 0:
                 move_ticker = 10
                 world.move_camera(["right"])
-            if keys[pygame.K_a]:
-                player.cx = player.cx - 1
+                player.hcx = player.cx + 3
+                moved = True
 
 
 
     if debugging:
         if keys[pygame.K_UP]:
             player.in_camera = False
+        pygame.draw.circle(screen,(255,50,255),(player.hcx,player.hcy),10)
 
     camera_follow.scan_for_player(player)
 
