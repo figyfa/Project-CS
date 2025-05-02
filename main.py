@@ -12,7 +12,7 @@ debugging = True
 FPS = 30
 fpsClock = pygame.time.Clock()
 
-def CalcDistance(pointA, pointB):
+def calc_distance(pointA, pointB):
     return math.sqrt((pointA.cx - pointB.cx)**2 + (pointA.cy - pointB.cy)**2) - pointA.radius - pointB.radius
 
 class Island:
@@ -26,7 +26,7 @@ class Island:
         pygame.draw.circle(screen, (self.colour), (self.cx, self.cy), self.radius)
 
 class BoundingBox:
-    def __init__(self,lx=100,ty=50,width=600,height=500,screen=screen):
+    def __init__(self,lx=450,ty=200,width=600,height=500,screen=screen):
         self.lx = lx
         self.ty = ty
         self.width = width
@@ -40,8 +40,8 @@ class BoundingBox:
         self.screen.blit(self.s,(self.lx,self.ty))
 
     def scan_for_player(self,player):
-        if self.lx < player.hcx - 5 and player.hcx + 5 < (self.lx + self.width) and self.ty < player.hcy - 5 and (self.lx + self.height - 45) > player.hcy:
-            print("player detected")
+        if self.lx < player.hcx - 5 and player.hcx + 5 < (self.lx + self.width) and self.ty < player.hcy - 5 and (self.ty + self.height) > player.hcy:
+            #print("player detected")
             player.in_camera = True
         else:
             player.in_camera = False
@@ -66,12 +66,31 @@ class Enemy:
         self.cx = cx
         self.cy = cy
         self.radius = 25
+        self.vx = 0
+        self.vy = 0
 
     def draw(self):
-        pygame.draw.circle(screen, (0,0,0), (self.cx, self.cy),self.radius)
+        pygame.draw.circle(screen, (0,20,0), (self.cx, self.cy),self.radius)
 
     def beeline(self,player):
-        pass
+        angle = math.pi
+        if player.cx - enemy.cx != 0:
+            angle = math.atan((player.cy - enemy.cy)/(player.cx - enemy.cx))
+        #print(angle/math.pi*180)
+        self.vx = -3 * math.cos(angle)
+        self.vy = -3 * math.sin(angle)
+
+        if enemy.cx > player.cx:
+            self.cx += self.vx
+            self.cy += self.vy
+        else:
+            self.cx -= self.vx
+            self.cy -= self.vy
+
+        if calc_distance(self,player) < 10:
+            print("Attacking")
+
+
 
 
 class GameWorld:
@@ -100,11 +119,11 @@ class GameWorld:
 
 
 
-island = Island((0, 255, 60,50),500,400,300)
+island = Island((0, 255, 60,50),1000,750,450)
 
 
 camera_follow = BoundingBox()
-player = Player(400,300)
+player = Player(600,300)
 world = GameWorld(player)
 world.objects.append(island)
 enemy = Enemy(750,450)
@@ -115,7 +134,8 @@ while running:
     if debugging:
         camera_follow.draw()
     player.draw()
-
+    enemy.draw()
+    enemy.beeline(player)
     keys = pygame.key.get_pressed()
     world.keys = pygame.key.get_pressed()
 
@@ -181,10 +201,12 @@ while running:
                 if keys[pygame.K_a] and not moved:
                     world.move_camera(["up", "left"])
                     player.hcx = player.cx - 3
+                    player.hcy = player.cy - 3
                     moved = True
                 if keys[pygame.K_d] and not moved:
                     world.move_camera(["up", "right"])
                     player.hcx = player.cx + 3
+                    player.hcy = player.cy - 3
                     moved = True
 
         if keys[pygame.K_s] and not moved:
@@ -197,10 +219,12 @@ while running:
                 if keys[pygame.K_a] and not moved:
                     world.move_camera(["down", "left"])
                     player.hcx = player.cx - 3
+                    player.hcy = player.cy + 3
                     moved = True
                 if keys[pygame.K_d] and not moved:
                     world.move_camera(["down", "right"])
                     player.hcx = player.cx + 3
+                    player.hcy = player.cy + 3
                     moved = True
 
         if keys[pygame.K_a] and not moved:
