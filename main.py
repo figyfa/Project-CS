@@ -101,20 +101,39 @@ class GameWorld:
 
     def move_camera(self,direction):
         for item in self.objects:
-            if "down" in direction:
-                item.cy = item.cy - 3
+            if len(direction) == 1:
+                if "down" in direction:
+                    item.cy = item.cy - 3
 
 
-            if "up" in direction:
-                item.cy = item.cy + 3
+                if "up" in direction:
+                    item.cy = item.cy + 3
 
 
-            if "left" in direction:
-                item.cx = item.cx + 3
+                if "left" in direction:
+                    item.cx = item.cx + 3
 
-            if "right" in direction:
-                item.cx = item.cx - 3
+                if "right" in direction:
+                    item.cx = item.cx - 3
 
+            else:
+                if "down" in direction and "left" in direction:
+                    item.cy = item.cy - 2.121
+                    item.cx = item.cx + 2.121
+
+
+                if "up" in direction and "left" in direction:
+                    item.cy = item.cy + 2.121
+                    item.cx = item.cx + 2.121
+
+
+                if "right" in direction and "down" in direction:
+                    item.cx = item.cx - 2.121
+                    item.cy = item.cy - 2.121
+
+                if "right" in direction and "up" in direction:
+                    item.cx = item.cx - 2.121
+                    item.cy = item.cy + 2.121
 
 
 
@@ -154,11 +173,11 @@ while running:
                 player.cy = player.hcy
                 #print("Moving up",player.cx,player.cy)
                 if keys[pygame.K_a]:
-                    player.hcx -= 3
+                    player.hcx -= 2
                     player.cx = player.hcx
                     #print("Moving up and left")
                 if keys[pygame.K_d]:
-                    player.hcx += 3
+                    player.hcx += 2
                     player.cx = player.hcx
 
         if keys[pygame.K_s]:
@@ -168,11 +187,11 @@ while running:
                 player.cy = player.hcy
                 #print("Moving down")
                 if keys[pygame.K_a]:
-                    player.hcx -= 3
+                    player.hcx -= 2
                     player.cx = player.hcx
                 if keys[pygame.K_d]:
                     #print("Moving down and right")
-                    player.hcx += 3
+                    player.hcx += 2
                     player.cx = player.hcx
 
         if keys[pygame.K_a]:
