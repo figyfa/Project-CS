@@ -9,7 +9,7 @@ running = True
 
 debugging = True
 
-FPS = 30
+FPS = 60
 fpsClock = pygame.time.Clock()
 
 def calc_distance(pointA, pointB):
@@ -24,6 +24,13 @@ class Island:
 
     def draw(self):
         pygame.draw.circle(screen, (self.colour), (self.cx, self.cy), self.radius)
+
+class Gun:
+    def __init__(self):
+        self.equipped = True
+        self.hcx = 0
+        self.hcy = 0
+
 
 class BoundingBox:
     def __init__(self,lx=450,ty=200,width=600,height=500,screen=screen):
@@ -148,6 +155,7 @@ world.objects.append(island)
 enemy = Enemy(750,450)
 world.objects.append(enemy)
 while running:
+    print(fpsClock)
     screen.fill((107, 191, 255))
     island.draw()
     if debugging:
@@ -173,11 +181,13 @@ while running:
                 player.cy = player.hcy
                 #print("Moving up",player.cx,player.cy)
                 if keys[pygame.K_a]:
-                    player.hcx -= 2
+                    player.hcx -= 2.121
+                    player.hcy += 0.879
                     player.cx = player.hcx
                     #print("Moving up and left")
                 if keys[pygame.K_d]:
-                    player.hcx += 2
+                    player.hcx += 2.121
+                    player.hcy += 0.879
                     player.cx = player.hcx
 
         if keys[pygame.K_s]:
@@ -187,11 +197,13 @@ while running:
                 player.cy = player.hcy
                 #print("Moving down")
                 if keys[pygame.K_a]:
-                    player.hcx -= 2
+                    player.hcx -= 2.121
+                    player.hcy -= 0.879
                     player.cx = player.hcx
                 if keys[pygame.K_d]:
                     #print("Moving down and right")
-                    player.hcx += 2
+                    player.hcx += 2.121
+                    player.hcy -= 0.879
                     player.cx = player.hcx
 
         if keys[pygame.K_a]:
