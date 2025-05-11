@@ -268,7 +268,7 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             bullet_system.create_shot(player,pygame.mouse.get_pos(),enemy)
-            enemy.get_hit(bullet_system.bullet_trailww)
+            enemy.get_hit(bullet_system.bullet_trail)
 
 
     move_ticker = 0
