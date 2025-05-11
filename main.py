@@ -15,6 +15,9 @@ fpsClock = pygame.time.Clock()
 def calc_distance(pointA, pointB):
     return math.sqrt((pointA.cx - pointB.cx)**2 + (pointA.cy - pointB.cy)**2) - pointA.radius - pointB.radius
 
+def calc_distance_circle_and_point(pointA, pointB):
+    return math.sqrt((pointA.cx - pointB[0])**2 + (pointA.cy - pointB[1])**2) - pointA.radius
+
 class Island:
     def __init__(self,colour, radius, cx, cy):
         self.colour = colour
@@ -75,6 +78,19 @@ class Enemy:
         self.radius = 25
         self.vx = 0
         self.vy = 0
+        self.health = 100
+        self.got_hit_this_frame = False
+
+    def get_hit(self,bullets):
+        for bullet in bullets:
+            if calc_distance_circle_and_point(enemy, bullet) <= 0 and self.got_hit_this_frame == False:
+                self.health -= 100
+                self.got_hit_this_frame = True
+                print("oof")
+
+    def clean_up(self):
+        self.got_hit_this_frame = False
+
 
     def draw(self):
         pygame.draw.circle(screen, (0,20,0), (self.cx, self.cy),self.radius)
@@ -95,9 +111,88 @@ class Enemy:
             self.cy -= self.vy
 
         if calc_distance(self,player) < 10:
-            print("Attacking")
+            pass
+            #print("Attacking")
 
 
+class Bullet_trail:
+    def __init__(self):
+        self.cx = 0
+        self.cy = 0
+        self.radius = 5
+        self.color = (125,125,125)
+        self.bullet_trail = []
+
+    def create_shot(self,player,destination,enemy):
+        self.cx = player.cx
+        self.cy = player.cy
+        if (destination[0] - player.cx) != 0:
+            gradient = (destination[1] - player.cy) / (destination[0] - player.cx)
+        else:
+            gradient = 9999
+        gradient = abs(gradient)
+
+        if destination[1] < player.cy and destination[0] > player.cx:
+            print("Shooting up and right")
+            if gradient > 1:
+                for i in range(20):
+                    self.bullet_trail.append((self.cx,self.cy))
+                    self.cy -= (enemy.radius - 2)
+                    self.cx += (1/gradient)* (enemy.radius - 2)
+
+
+            elif 0 <= gradient <= 1:
+                for i in range(20):
+                    self.bullet_trail.append((self.cx,self.cy))
+                    self.cx += (enemy.radius - 2)
+                    self.cy -= gradient * (enemy.radius - 2)
+
+        elif destination[1] < player.cy and destination[0] < player.cx:
+            print("shooting up and left")
+            if gradient > 1:
+                for i in range(20):
+                    self.bullet_trail.append((self.cx,self.cy))
+                    self.cy -= (enemy.radius - 2)
+                    self.cx -= (1/gradient) * (enemy.radius - 2)
+            elif 0 <= gradient <= 1:
+                for i in range(20):
+                    self.bullet_trail.append((self.cx,self.cy))
+                    self.cx -= (enemy.radius - 2)
+                    self.cy -= gradient * (enemy.radius - 2)
+
+        elif destination[1] > player.cy and destination[0] < player.cx:
+            print("shooting down and left")
+            if gradient > 1:
+                for i in range(20):
+                    self.bullet_trail.append((self.cx,self.cy))
+                    self.cy += (enemy.radius - 2)
+                    self.cx -= (1/gradient) * (enemy.radius - 2)
+
+            elif 0 <= gradient <= 1:
+                for i in range(20):
+                    self.bullet_trail.append((self.cx,self.cy))
+                    self.cx -= (enemy.radius - 2)
+                    self.cy += gradient * (enemy.radius - 2)
+
+        elif destination[1] > player.cy and destination[0] > player.cx:
+            print("Shooting down and right")
+            if gradient > 1:
+                for i in range(20):
+                    self.bullet_trail.append((self.cx,self.cy))
+                    self.cy += (enemy.radius - 2)
+                    self.cx += (1/gradient) * (enemy.radius - 2)
+
+            elif 0 <= gradient <= 1:
+                for i in range(20):
+                    self.bullet_trail.append((self.cx,self.cy))
+                    self.cx += (enemy.radius - 2)
+                    self.cy += gradient * (enemy.radius - 2)
+    def draw(self):
+        for bullet in self.bullet_trail:
+            pygame.draw.circle(screen, (123,123,123), (bullet[0],bullet[1]), 3)
+
+    def clean_shot(self):
+        self.bullet_trail = []
 
 
 class GameWorld:
@@ -154,8 +249,9 @@ world = GameWorld(player)
 world.objects.append(island)
 enemy = Enemy(750,450)
 world.objects.append(enemy)
+bullet_system = Bullet_trail()
 while running:
-    print(fpsClock)
+    #print(fpsClock)
     screen.fill((107, 191, 255))
     island.draw()
     if debugging:
@@ -170,9 +266,14 @@ while running:
 
         if event.type == pygame.QUIT:
             running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            bullet_system.create_shot(player,pygame.mouse.get_pos(),enemy)
+            enemy.get_hit(bullet_system.bullet_trailww)
+
 
     move_ticker = 0
-
+    if len(bullet_system.bullet_trail) > 0 and debugging:
+        bullet_system.draw()
     if player.in_camera:
         if keys[pygame.K_w]:
             if move_ticker == 0:
@@ -279,6 +380,9 @@ while running:
         if keys[pygame.K_UP]:
             player.in_camera = False
         pygame.draw.circle(screen,(255,50,255),(player.hcx,player.hcy),10)
+
+    bullet_system.clean_shot()
+    enemy.clean_up()
 
     camera_follow.scan_for_player(player)
 
