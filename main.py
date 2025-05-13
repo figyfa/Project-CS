@@ -1,5 +1,6 @@
 import pygame
 import math
+import random
 
 pygame.init()
 
@@ -67,6 +68,7 @@ class Player:
         self.hcx = cx
         self.hcy = cy
         self.radius = 25
+        self.sprinting = 1
     def draw(self):
         pygame.draw.circle(screen, (0,0,0), (self.cx, self.cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
@@ -79,21 +81,38 @@ class Enemy:
         self.vx = 0
         self.vy = 0
         self.health = 100
+        self.colour = (255,255,255)
         self.got_hit_this_frame = False
+        self.can_move = 1
+        self.enemies_nearby = 0
 
     def get_hit(self,bullets):
         for bullet in bullets:
             if calc_distance_circle_and_point(enemy, bullet) <= 0 and self.got_hit_this_frame == False:
-                self.health -= 100
+                self.health -= 20
                 self.got_hit_this_frame = True
                 print("oof")
+                print(self.colour)
+
+    def evaluate_health(self):
+        if 1 >= (self.health / 100) >= 0:
+            self.colour =(255,255 * (self.health / 100),255)
+            if self.health <= 0:
+                print("dead")
+                self.can_move = 0
 
     def clean_up(self):
         self.got_hit_this_frame = False
 
+    def scan_for_friendlies(self,enemies):
+        self.enemies_nearby = 0
+        for enemy in enemies:
+            if calc_distance(self,enemy) < 5:
+                self.enemies_nearby += 1
+
 
     def draw(self):
-        pygame.draw.circle(screen, (0,20,0), (self.cx, self.cy),self.radius)
+        pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
 
     def beeline(self,player):
         angle = math.pi
@@ -104,11 +123,11 @@ class Enemy:
         self.vy = -3 * math.sin(angle)
 
         if enemy.cx > player.cx:
-            self.cx += self.vx
-            self.cy += self.vy
+            self.cx += self.vx * self.can_move * (self.enemies_nearby)
+            self.cy += self.vy * self.can_move * (self.enemies_nearby)
         else:
-            self.cx -= self.vx
-            self.cy -= self.vy
+            self.cx -= self.vx * self.can_move * (self.enemies_nearby)
+            self.cy -= self.vy * self.can_move * (self.enemies_nearby)
 
         if calc_distance(self,player) < 10:
             pass
@@ -205,37 +224,37 @@ class GameWorld:
         for item in self.objects:
             if len(direction) == 1:
                 if "down" in direction:
-                    item.cy = item.cy - 3
+                    item.cy = item.cy - 3 * player.sprinting
 
 
                 if "up" in direction:
-                    item.cy = item.cy + 3
+                    item.cy = item.cy + 3 * player.sprinting
 
 
                 if "left" in direction:
-                    item.cx = item.cx + 3
+                    item.cx = item.cx + 3 * player.sprinting
 
                 if "right" in direction:
-                    item.cx = item.cx - 3
+                    item.cx = item.cx - 3 * player.sprinting
 
             else:
                 if "down" in direction and "left" in direction:
-                    item.cy = item.cy - 2.121
-                    item.cx = item.cx + 2.121
+                    item.cy = item.cy - 2.121 * player.sprinting
+                    item.cx = item.cx + 2.121 * player.sprinting
 
 
                 if "up" in direction and "left" in direction:
-                    item.cy = item.cy + 2.121
-                    item.cx = item.cx + 2.121
+                    item.cy = item.cy + 2.121 * player.sprinting
+                    item.cx = item.cx + 2.121 * player.sprinting
 
 
                 if "right" in direction and "down" in direction:
-                    item.cx = item.cx - 2.121
-                    item.cy = item.cy - 2.121
+                    item.cx = item.cx - 2.121 * player.sprinting
+                    item.cy = item.cy - 2.121 * player.sprinting
 
                 if "right" in direction and "up" in direction:
-                    item.cx = item.cx - 2.121
-                    item.cy = item.cy + 2.121
+                    item.cx = item.cx - 2.121 * player.sprinting
+                    item.cy = item.cy + 2.121 * player.sprinting
 
 
 
@@ -247,8 +266,9 @@ camera_follow = BoundingBox()
 player = Player(600,300)
 world = GameWorld(player)
 world.objects.append(island)
-enemy = Enemy(750,450)
-world.objects.append(enemy)
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(5)]
+for enemy in enemies:
+    world.objects.append(enemy)
 bullet_system = Bullet_trail()
 while running:
     #print(fpsClock)
@@ -257,8 +277,9 @@ while running:
     if debugging:
         camera_follow.draw()
     player.draw()
-    enemy.draw()
-    enemy.beeline(player)
+    for enemy in enemies:
+        enemy.draw()
+        enemy.beeline(player)
     keys = pygame.key.get_pressed()
     world.keys = pygame.key.get_pressed()
 
@@ -267,57 +288,64 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            bullet_system.create_shot(player,pygame.mouse.get_pos(),enemy)
-            enemy.get_hit(bullet_system.bullet_trail)
+            for enemy in enemies:
+                bullet_system.create_shot(player,pygame.mouse.get_pos(),enemy)
+                enemy.get_hit(bullet_system.bullet_trail)
 
 
     move_ticker = 0
     if len(bullet_system.bullet_trail) > 0 and debugging:
         bullet_system.draw()
+
+    if keys[pygame.K_LSHIFT]:
+        player.sprinting = 2
+    else:
+        player.sprinting = 1
+
     if player.in_camera:
         if keys[pygame.K_w]:
             if move_ticker == 0:
                 move_ticker = 10
-                player.hcy -= 3
+                player.hcy -= 3 * player.sprinting
                 player.cy = player.hcy
                 #print("Moving up",player.cx,player.cy)
                 if keys[pygame.K_a]:
-                    player.hcx -= 2.121
-                    player.hcy += 0.879
+                    player.hcx -= 2.121 * player.sprinting
+                    player.hcy += 0.879 * player.sprinting
                     player.cx = player.hcx
                     #print("Moving up and left")
                 if keys[pygame.K_d]:
-                    player.hcx += 2.121
-                    player.hcy += 0.879
+                    player.hcx += 2.121 * player.sprinting
+                    player.hcy += 0.879 * player.sprinting
                     player.cx = player.hcx
 
         if keys[pygame.K_s]:
             if move_ticker == 0:
                 move_ticker = 10
-                player.hcy += 3
+                player.hcy += 3 * player.sprinting
                 player.cy = player.hcy
                 #print("Moving down")
                 if keys[pygame.K_a]:
-                    player.hcx -= 2.121
-                    player.hcy -= 0.879
+                    player.hcx -= 2.121 * player.sprinting
+                    player.hcy -= 0.879 * player.sprinting
                     player.cx = player.hcx
                 if keys[pygame.K_d]:
                     #print("Moving down and right")
-                    player.hcx += 2.121
-                    player.hcy -= 0.879
+                    player.hcx += 2.121 * player.sprinting
+                    player.hcy -= 0.879 * player.sprinting
                     player.cx = player.hcx
 
         if keys[pygame.K_a]:
             if move_ticker == 0:
                 move_ticker = 10
-                player.hcx -= 3
+                player.hcx -= 3 * player.sprinting
                 player.cx = player.hcx
                 #print("moving left")
 
         if keys[pygame.K_d]:
             if move_ticker == 0:
                 move_ticker = 10
-                player.hcx += 3
+                player.hcx += 3 * player.sprinting
                 player.cx = player.hcx
                 #print("moving right")
 
@@ -328,17 +356,17 @@ while running:
                 if not keys[pygame.K_a] and not keys[pygame.K_d]:
                     move_ticker = 10
                     world.move_camera(["up"])
-                    player.hcy = player.cy - 3
+                    player.hcy = player.cy - 3 * player.sprinting
                     moved = True
                 if keys[pygame.K_a] and not moved:
                     world.move_camera(["up", "left"])
-                    player.hcx = player.cx - 3
-                    player.hcy = player.cy - 3
+                    player.hcx = player.cx - 3 * player.sprinting
+                    player.hcy = player.cy - 3 * player.sprinting
                     moved = True
                 if keys[pygame.K_d] and not moved:
                     world.move_camera(["up", "right"])
-                    player.hcx = player.cx + 3
-                    player.hcy = player.cy - 3
+                    player.hcx = player.cx + 3 * player.sprinting
+                    player.hcy = player.cy - 3 * player.sprinting
                     moved = True
 
         if keys[pygame.K_s] and not moved:
@@ -346,24 +374,24 @@ while running:
                 if not keys[pygame.K_a] and not keys[pygame.K_d]:
                     move_ticker = 10
                     world.move_camera(["down"])
-                    player.hcy = player.cy + 3
+                    player.hcy = player.cy + 3 * player.sprinting
                     moved = True
                 if keys[pygame.K_a] and not moved:
                     world.move_camera(["down", "left"])
-                    player.hcx = player.cx - 3
-                    player.hcy = player.cy + 3
+                    player.hcx = player.cx - 3 * player.sprinting
+                    player.hcy = player.cy + 3 * player.sprinting
                     moved = True
                 if keys[pygame.K_d] and not moved:
                     world.move_camera(["down", "right"])
-                    player.hcx = player.cx + 3
-                    player.hcy = player.cy + 3
+                    player.hcx = player.cx + 3 * player.sprinting
+                    player.hcy = player.cy + 3 * player.sprinting
                     moved = True
 
         if keys[pygame.K_a] and not moved:
             if move_ticker == 0:
                 move_ticker = 10
                 world.move_camera(["left"])
-                player.hcx = player.cx - 3
+                player.hcx = player.cx - 3 * player.sprinting
                 moved = True
 
 
@@ -371,7 +399,7 @@ while running:
             if move_ticker == 0:
                 move_ticker = 10
                 world.move_camera(["right"])
-                player.hcx = player.cx + 3
+                player.hcx = player.cx + 3 * player.sprinting
                 moved = True
 
 
@@ -382,7 +410,11 @@ while running:
         pygame.draw.circle(screen,(255,50,255),(player.hcx,player.hcy),10)
 
     bullet_system.clean_shot()
-    enemy.clean_up()
+
+    for enemy in enemies:
+        enemy.evaluate_health()
+        enemy.clean_up()
+        enemy.scan_for_friendlies(enemies)
 
     camera_follow.scan_for_player(player)
 
