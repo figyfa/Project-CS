@@ -69,9 +69,13 @@ class Player:
         self.hcy = cy
         self.radius = 25
         self.sprinting = 1
+        self.health = 100
+        self.colour = (0,0,0)
     def draw(self):
-        pygame.draw.circle(screen, (0,0,0), (self.cx, self.cy),self.radius)
+        pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
+    def update_health(self):
+        self.colour = (0,255 * (100 - self.health)/100,0)
 
 class Enemy:
     def __init__(self,cx,cy):
@@ -85,20 +89,26 @@ class Enemy:
         self.got_hit_this_frame = False
         self.can_move = 1
         self.enemies_nearby = 0
-
+        self.last_hit_time = -1
+    '''
     def get_hit(self,bullets):
-        for bullet in bullets:
-            if calc_distance_circle_and_point(enemy, bullet) <= 0 and self.got_hit_this_frame == False:
+        found = False
+        index = 0
+        while not found and index < len(bullets):
+            if calc_distance_circle_and_point(self, bullets[index]) <= 0 and self.got_hit_this_frame == False:
                 self.health -= 20
                 self.got_hit_this_frame = True
                 print("oof")
                 print(self.colour)
+                found = True
+            else:
+                index += 1
+    '''
 
     def evaluate_health(self):
         if 1 >= (self.health / 100) >= 0:
             self.colour =(255,255 * (self.health / 100),255)
             if self.health <= 0:
-                print("dead")
                 self.can_move = 0
 
     def clean_up(self):
@@ -107,7 +117,7 @@ class Enemy:
     def scan_for_friendlies(self,enemies):
         self.enemies_nearby = 0
         for enemy in enemies:
-            if calc_distance(self,enemy) < 5:
+            if calc_distance(self,enemy) < 5 and enemy.health > 0:
                 self.enemies_nearby += 1
 
 
@@ -123,15 +133,17 @@ class Enemy:
         self.vy = -3 * math.sin(angle)
 
         if enemy.cx > player.cx:
-            self.cx += self.vx * self.can_move * (self.enemies_nearby)
-            self.cy += self.vy * self.can_move * (self.enemies_nearby)
+            self.cx += self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+            self.cy += self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
         else:
-            self.cx -= self.vx * self.can_move * (self.enemies_nearby)
-            self.cy -= self.vy * self.can_move * (self.enemies_nearby)
+            self.cx -= self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+            self.cy -= self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
 
-        if calc_distance(self,player) < 10:
-            pass
-            #print("Attacking")
+        if calc_distance(self,player) < 10 and self.health > 0:
+            if seconds > (self.last_hit_time + 0.7):
+                player.health -= 2
+                self.last_hit_time = seconds
+                print("player hit")
 
 
 class Bullet_trail:
@@ -141,6 +153,23 @@ class Bullet_trail:
         self.radius = 5
         self.color = (125,125,125)
         self.bullet_trail = []
+
+    def check_hit(self, enemies):
+        found = False
+        index = 0
+        got_hit_this_frame = False
+        while not found and index < len(self.bullet_trail):
+
+            for enemy in enemies:
+                if calc_distance_circle_and_point(enemy, self.bullet_trail[index]) <= 0 and got_hit_this_frame == False:
+                    enemy.health -= 20
+                    #print(enemy.health)
+                    #print("oof")
+                    #print(enemy.colour)
+                    found = True
+                    got_hit_this_frame = True
+            else:
+                index += 1
 
     def create_shot(self,player,destination,enemy):
         self.cx = player.cx
@@ -152,7 +181,7 @@ class Bullet_trail:
         gradient = abs(gradient)
 
         if destination[1] < player.cy and destination[0] > player.cx:
-            print("Shooting up and right")
+            #print("Shooting up and right")
             if gradient > 1:
                 for i in range(20):
                     self.bullet_trail.append((self.cx,self.cy))
@@ -167,7 +196,7 @@ class Bullet_trail:
                     self.cy -= gradient * (enemy.radius - 2)
 
         elif destination[1] < player.cy and destination[0] < player.cx:
-            print("shooting up and left")
+            #print("shooting up and left")
             if gradient > 1:
                 for i in range(20):
                     self.bullet_trail.append((self.cx,self.cy))
@@ -180,7 +209,7 @@ class Bullet_trail:
                     self.cy -= gradient * (enemy.radius - 2)
 
         elif destination[1] > player.cy and destination[0] < player.cx:
-            print("shooting down and left")
+            #print("shooting down and left")
             if gradient > 1:
                 for i in range(20):
                     self.bullet_trail.append((self.cx,self.cy))
@@ -194,7 +223,7 @@ class Bullet_trail:
                     self.cy += gradient * (enemy.radius - 2)
 
         elif destination[1] > player.cy and destination[0] > player.cx:
-            print("Shooting down and right")
+            #print("Shooting down and right")
             if gradient > 1:
                 for i in range(20):
                     self.bullet_trail.append((self.cx,self.cy))
@@ -266,11 +295,15 @@ camera_follow = BoundingBox()
 player = Player(600,300)
 world = GameWorld(player)
 world.objects.append(island)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(5)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(10)]
 for enemy in enemies:
     world.objects.append(enemy)
 bullet_system = Bullet_trail()
+frames = 0
 while running:
+    frames = frames + 1
+    seconds = frames / FPS
+    #print(seconds)
     #print(fpsClock)
     screen.fill((107, 191, 255))
     island.draw()
@@ -288,9 +321,10 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            for enemy in enemies:
-                bullet_system.create_shot(player,pygame.mouse.get_pos(),enemy)
-                enemy.get_hit(bullet_system.bullet_trail)
+
+            bullet_system.create_shot(player,pygame.mouse.get_pos(),enemy)
+            bullet_system.check_hit(enemies)
+            print(enemy.health)
 
 
     move_ticker = 0
@@ -410,6 +444,7 @@ while running:
         pygame.draw.circle(screen,(255,50,255),(player.hcx,player.hcy),10)
 
     bullet_system.clean_shot()
+    player.update_health()
 
     for enemy in enemies:
         enemy.evaluate_health()
