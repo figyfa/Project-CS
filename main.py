@@ -8,7 +8,7 @@ screen = pygame.display.set_mode((1500, 900))
 
 running = True
 
-debugging = True
+debugging = False
 
 FPS = 60
 fpsClock = pygame.time.Clock()
@@ -153,6 +153,7 @@ class Bullet_trail:
         self.radius = 5
         self.color = (125,125,125)
         self.bullet_trail = []
+        self.deadly_bullet = ()
 
     def check_hit(self, enemies):
         found = False
@@ -167,11 +168,16 @@ class Bullet_trail:
                     #print("oof")
                     #print(enemy.colour)
                     found = True
+                    self.deadly_bullet = self.bullet_trail[index]
                     got_hit_this_frame = True
+
             else:
                 index += 1
+        if not found:
+            self.deadly_bullet = self.bullet_trail[-1]
 
-    def create_shot(self,player,destination,enemy):
+    def create_shot(self,player,destination):
+        MAX_RANGE = 20 * (enemies[0].radius - 2)
         self.cx = player.cx
         self.cy = player.cy
         if (destination[0] - player.cx) != 0:
@@ -235,9 +241,24 @@ class Bullet_trail:
                     self.bullet_trail.append((self.cx,self.cy))
                     self.cx += (enemy.radius - 2)
                     self.cy += gradient * (enemy.radius - 2)
-    def draw(self):
-        for bullet in self.bullet_trail:
-            pygame.draw.circle(screen, (123,123,123), (bullet[0],bullet[1]), 3)
+        max_distance_index = 0
+        max_found = False
+        while calc_distance_circle_and_point(player,self.bullet_trail[max_distance_index]) < MAX_RANGE and max_found == False:
+            max_distance_index += 1
+            if calc_distance_circle_and_point(player,self.bullet_trail[max_distance_index]) >= MAX_RANGE:
+                max_found = True
+
+        if max_found == True:
+            self.bullet_trail = self.bullet_trail[:max_distance_index + 1]
+
+
+
+    def draw(self, player):
+        if debugging:
+            for bullet in self.bullet_trail:
+                pygame.draw.circle(screen, (123,123,123), (bullet[0],bullet[1]), 3)
+        else:
+            pygame.draw.line(screen,(238, 255, 0),(player.cx,player.cy),(self.deadly_bullet[0],self.deadly_bullet[1]),4)
 
     def clean_shot(self):
         self.bullet_trail = []
@@ -322,14 +343,14 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
 
-            bullet_system.create_shot(player,pygame.mouse.get_pos(),enemy)
+            bullet_system.create_shot(player,pygame.mouse.get_pos())
             bullet_system.check_hit(enemies)
-            print(enemy.health)
+            #print(enemy.health)
 
 
     move_ticker = 0
-    if len(bullet_system.bullet_trail) > 0 and debugging:
-        bullet_system.draw()
+    if len(bullet_system.bullet_trail) > 0:
+        bullet_system.draw(player)
 
     if keys[pygame.K_LSHIFT]:
         player.sprinting = 2
