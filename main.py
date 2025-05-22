@@ -160,6 +160,7 @@ class Grenade:
         self.radius = 30
         self.key_g_not_pressed = True
         self.position_matrix = np.matrix([[0],[0]])
+        self.final_position_matrix = np.matrix([[0],[0]])
         self.rotation_matrix = np.matrix([[0 , 0] , [0 , 0]])
         self.bearing = 0
 
@@ -184,25 +185,31 @@ class Grenade:
         if self.thrown == False:
             self.cx = player.cx
             self.cy = player.cy
-            if direction[0] - self.cx != 0:
-                self.angle_to_horz = math.atan((direction[1] - self.cy)/(direction[0] - self.cx))
-            else:
-                self.angle_to_horz = ((math.pi)/2) + 0.01
-            self.bearing = ((math.pi)/2) - self.angle_to_horz
+            dy = direction[1] - self.cy
+            dx = direction[0] - self.cx
 
-            if direction[0] < self.cx:
-                self.bearing = math.pi + (math.pi - self.bearing)
+            np.array([dy],[dx])
 
         self.thrown = True
         if seconds <= self.current_time + 3 and self.distance_travelled < 3000:
-            #print("Travelling")
-
-
-
-            print(self.angle_to_horz)
             print(self.cx,self.cy)
-            pygame.draw.circle(screen,(252,231,223),(self.cx,self.cy),10)
 
+            self.position_matrix = np.matrix([[self.cx - player.cx], [self.cy - player.cy]])
+
+            self.final_position_matrix = np.matrix.dot(self.rotation_matrix, self.position_matrix)
+
+            final_pos = self.final_position_matrix.shape
+
+
+            self.cx = final_pos[0]
+            self.cy = final_pos[1]
+
+            self.distance_travelled += 1
+
+            pygame.draw.circle(screen,(252,231,223),(self.cx,self.cy),10)
+            self.cx = player.cx
+            self.cy = player.cy - (self.distance_travelled + 1)
+            '''
             if direction[0] > self.cx:
                 if self.angle_to_horz > 0:
                     self.cx = self.cx + 10
@@ -219,6 +226,7 @@ class Grenade:
                     self.cy = self.cy + math.tan(self.angle_to_horz)
 
             self.distance_travelled += 1
+            '''
 
         elif seconds > self.current_time + 3:
             print("Exploding after thrown")
@@ -421,7 +429,7 @@ world = GameWorld(player)
 grenade = Grenade()
 
 world.objects.append(island)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(1)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(10)]
 for enemy in enemies:
     world.objects.append(enemy)
 bullet_system = Bullet_trail()
