@@ -1,7 +1,6 @@
 import pygame
 import math
 import random
-import numpy as np
 
 pygame.init()
 
@@ -107,10 +106,10 @@ class Enemy:
     '''
 
     def evaluate_health(self):
-        if 1 >= (self.health / 100) >= 0:
+        if 100 >= (self.health) >= 1:
             self.colour =(255,255 * (self.health / 100),255)
-            if self.health <= 0:
-                self.can_move = 0
+        if self.health <= 0:
+            self.can_move = 0
 
     def clean_up(self):
         self.got_hit_this_frame = False
@@ -157,15 +156,15 @@ class Grenade:
         self.cy = 0
         self.colour = (123,52,231)
         self.distance_travelled = 0
-        self.radius = 30
+        self.radius = 100
         self.key_g_not_pressed = True
-        self.position_matrix = np.matrix([[0],[0]])
-        self.final_position_matrix = np.matrix([[0],[0]])
-        self.rotation_matrix = np.matrix([[0 , 0] , [0 , 0]])
-        self.bearing = 0
+        self.x_step = 1
+        self.y_step = 1
 
     def arm(self):
         self.cooking = True
+        if self in world.objects:
+            world.objects.remove(self)
         if not self.current_time_decided:
             self.current_time = seconds
             self.current_time_decided = True
@@ -183,32 +182,30 @@ class Grenade:
 
         #print(seconds,self.current_time+3,self.distance_travelled)
         if self.thrown == False:
+            world.objects.append(self)
+
             self.cx = player.cx
             self.cy = player.cy
-            dy = direction[1] - self.cy
-            dx = direction[0] - self.cx
+            dy = direction[1] - player.cy
+            dx = direction[0] - player.cx
 
-            np.array([dy],[dx])
+            magnitude = math.sqrt((dx * dx) + (dy * dy))
+
+            self.y_step = dy/magnitude
+            self.x_step = dx/magnitude
+            print(magnitude)
+            print(self.x_step,self.y_step)
 
         self.thrown = True
-        if seconds <= self.current_time + 3 and self.distance_travelled < 3000:
-            print(self.cx,self.cy)
-
-            self.position_matrix = np.matrix([[self.cx - player.cx], [self.cy - player.cy]])
-
-            self.final_position_matrix = np.matrix.dot(self.rotation_matrix, self.position_matrix)
-
-            final_pos = self.final_position_matrix.shape
-
-
-            self.cx = final_pos[0]
-            self.cy = final_pos[1]
+        if seconds <= self.current_time + 3 and self.distance_travelled < 3000 and self.thrown:
+            self.cx = self.cx + self.x_step * (3 - (self.distance_travelled * 0.02))
+            self.cy = self.cy + self.y_step * (3 - (self.distance_travelled * 0.02))
+            print(self.x_step,self.y_step)
 
             self.distance_travelled += 1
 
             pygame.draw.circle(screen,(252,231,223),(self.cx,self.cy),10)
-            self.cx = player.cx
-            self.cy = player.cy - (self.distance_travelled + 1)
+
             '''
             if direction[0] > self.cx:
                 if self.angle_to_horz > 0:
@@ -237,6 +234,7 @@ class Grenade:
 
     def explode(self):
         self.exploded = False
+        pygame.draw.circle(screen, self.colour, (self.cx, self.cy), self.radius)
         for enemy in enemies:
             if calc_distance(self,enemy) < 0:
                 enemy.health = enemy.health - 30
@@ -246,6 +244,7 @@ class Grenade:
         self.key_g_not_pressed = True
         self.distance_travelled = 0
         print(f"Damage administered around {self.cx,self.cy}")
+        world.objects.remove(self)
 
 
 
@@ -278,8 +277,11 @@ class Bullet_trail:
 
             else:
                 index += 1
-        if not found:
-            self.deadly_bullet = self.bullet_trail[-1]
+        try:
+            if not found:
+                self.deadly_bullet = self.bullet_trail[-1]
+        except:
+            self.deadly_bullet = ()
 
     def create_shot(self,player,destination):
         MAX_RANGE = 20 * (enemies[0].radius - 2)
@@ -435,11 +437,7 @@ for enemy in enemies:
 bullet_system = Bullet_trail()
 frames = 0
 while running:
-    if grenade.thrown:
-        world.objects.append(grenade)
-    else:
-        if grenade in world.objects:
-            world.objects.remove(grenade)
+
     frames = frames + 1
     seconds = frames / FPS
     #print(seconds)
@@ -603,6 +601,7 @@ while running:
         enemy.evaluate_health()
         enemy.clean_up()
         enemy.scan_for_friendlies(enemies)
+        print(enemy.health)
 
     camera_follow.scan_for_player(player)
 
