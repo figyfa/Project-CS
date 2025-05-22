@@ -1,6 +1,7 @@
 import pygame
 import math
 import random
+import numpy as np
 
 pygame.init()
 
@@ -158,14 +159,17 @@ class Grenade:
         self.distance_travelled = 0
         self.radius = 30
         self.key_g_not_pressed = True
+        self.position_matrix = np.matrix([[0],[0]])
+        self.rotation_matrix = np.matrix([[0 , 0] , [0 , 0]])
+        self.bearing = 0
 
     def arm(self):
         self.cooking = True
         if not self.current_time_decided:
             self.current_time = seconds
             self.current_time_decided = True
-            print("Cooking")
-        print("Cooking")
+            print("Cooking 1")
+        print("Cooking 2")
 
         if seconds >= self.current_time + 3 and self.thrown == False:
             self.current_time_decided = False
@@ -175,35 +179,50 @@ class Grenade:
 
     def throw(self,direction):
         self.cooking = False
-        self.thrown = True
-        print(seconds,self.current_time+3,self.distance_travelled)
-        if seconds <= self.current_time + 3 and self.distance_travelled < 10:
-            print("Travelling")
 
+        #print(seconds,self.current_time+3,self.distance_travelled)
+        if self.thrown == False:
+            self.cx = player.cx
+            self.cy = player.cy
             if direction[0] - self.cx != 0:
                 self.angle_to_horz = math.atan((direction[1] - self.cy)/(direction[0] - self.cx))
             else:
-                self.angle_to_horz = ((math.pi)/2) + 1
+                self.angle_to_horz = ((math.pi)/2) + 0.01
+            self.bearing = ((math.pi)/2) - self.angle_to_horz
+
+            if direction[0] < self.cx:
+                self.bearing = math.pi + (math.pi - self.bearing)
+
+        self.thrown = True
+        if seconds <= self.current_time + 3 and self.distance_travelled < 3000:
+            #print("Travelling")
+
+
+
+            print(self.angle_to_horz)
+            print(self.cx,self.cy)
+            pygame.draw.circle(screen,(252,231,223),(self.cx,self.cy),10)
 
             if direction[0] > self.cx:
                 if self.angle_to_horz > 0:
-                    self.cx = self.cx + 1
+                    self.cx = self.cx + 10
                     self.cy = self.cy - math.tan(self.angle_to_horz)
                 elif self.angle_to_horz <= 0:
-                    self.cx = self.cx + 1
+                    self.cx = self.cx + 10
                     self.cy = self.cy + math.tan(self.angle_to_horz)
             else:
                 if self.angle_to_horz > 0:
-                    self.cx = self.cx - 1
+                    self.cx = self.cx - 10
                     self.cy = self.cy - math.tan(self.angle_to_horz)
                 elif self.angle_to_horz <= 0:
-                    self.cx = self.cx - 1
+                    self.cx = self.cx - 10
                     self.cy = self.cy + math.tan(self.angle_to_horz)
 
             self.distance_travelled += 1
 
-        else:
+        elif seconds > self.current_time + 3:
             print("Exploding after thrown")
+            self.current_time_decided = False
             self.exploded = True
             self.thrown = False
             self.explode()
@@ -217,7 +236,8 @@ class Grenade:
             player.health = player.health - 30
 
         self.key_g_not_pressed = True
-        print("Damage administered")
+        self.distance_travelled = 0
+        print(f"Damage administered around {self.cx,self.cy}")
 
 
 
@@ -320,12 +340,16 @@ class Bullet_trail:
                     self.cy += gradient * (enemy.radius - 2)
         max_distance_index = 0
         max_found = False
-        while calc_distance_circle_and_point(player,self.bullet_trail[max_distance_index]) < MAX_RANGE and max_found == False:
-            max_distance_index += 1
-            if max_distance_index >= len(self.bullet_trail):
-                break
-            if calc_distance_circle_and_point(player,self.bullet_trail[max_distance_index]) >= MAX_RANGE:
-                max_found = True
+
+        try:
+            while calc_distance_circle_and_point(player,self.bullet_trail[max_distance_index]) < MAX_RANGE and max_found == False:
+                max_distance_index += 1
+                if max_distance_index >= len(self.bullet_trail):
+                    break
+                if calc_distance_circle_and_point(player,self.bullet_trail[max_distance_index]) >= MAX_RANGE:
+                    max_found = True
+        except:
+            max_distance_index = len(self.bullet_trail) - 1
 
         if max_found == True:
             self.bullet_trail = self.bullet_trail[:max_distance_index + 1]
@@ -397,7 +421,7 @@ world = GameWorld(player)
 grenade = Grenade()
 
 world.objects.append(island)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(10)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(1)]
 for enemy in enemies:
     world.objects.append(enemy)
 bullet_system = Bullet_trail()
