@@ -72,11 +72,49 @@ class Player:
         self.sprinting = 1
         self.health = 100
         self.colour = (0,0,0)
+        self.laser_trail = []
+        self.first_run = True
     def draw(self):
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
         self.colour = (0,255 * (100 - self.health)/100,0)
+    def fire_laser(self):
+        mouse_pos = pygame.mouse.get_pos()
+        magnitude = math.sqrt((mouse_pos[0] - self.cx)**2 + (mouse_pos[1] - self.cy)**2)
+        self.xstep = ((mouse_pos[0] - self.cx)/magnitude) * 20
+        self.ystep = ((mouse_pos[1] - self.cy)/magnitude) * 20
+        self.current_bulletx = self.cx
+        self.current_bullety = self.cy
+        self.laser_trail.append((self.current_bulletx,self.current_bullety))
+        if self.xstep > 0:
+            while self.current_bulletx < mouse_pos[0]:
+                self.current_bulletx += self.xstep
+                self.current_bullety += self.ystep
+                self.laser_trail.append((self.current_bulletx,self.current_bullety))
+        else:
+            while self.current_bulletx > mouse_pos[0]:
+                self.current_bulletx += self.xstep
+                self.current_bullety += self.ystep
+                self.laser_trail.append((self.current_bulletx,self.current_bullety))
+
+        if debugging:
+            for circle in self.laser_trail:
+                pygame.draw.circle(screen, (123,123,123), (circle[0],circle[1]),5)
+        else:
+            pygame.draw.line(screen, (11, 3, 252), (self.cx,self.cy),(self.laser_trail[-1][0],self.laser_trail[-1][1]),10)
+
+
+
+    def check_laser_hit(self,enemies):
+        for enemy in enemies:
+            for circle in self.laser_trail:
+                print(calc_distance_circle_and_point(enemy,circle))
+                if calc_distance_circle_and_point(enemy,circle) < 0:
+                    enemy.health -= 5
+        self.laser_trail = []
+
+
 
 class Enemy:
     def __init__(self,cx,cy):
@@ -481,23 +519,20 @@ class GameWorld:
 
 island = Island((0, 255, 60,50),1000,750,450)
 
-viruses = []
 camera_follow = BoundingBox()
 player = Player(600,300)
 world = GameWorld(player)
 grenade = Grenade()
-virus = Virus()
 world.objects.append(island)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(1)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(5)]
+viruses = [Virus() for i in range(10)]
+for virus in viruses:
+    enemies.append(virus)
 for enemy in enemies:
     world.objects.append(enemy)
-viruses.append(virus)
-enemies.append(virus)
-world.objects.append(virus)
 bullet_system = Bullet_trail()
 frames = 0
 while running:
-
     frames = frames + 1
     seconds = frames / FPS
     #print(seconds)
@@ -533,11 +568,18 @@ while running:
         mouse_pos = pygame.mouse.get_pos()
         grenade.throw(mouse_pos)
 
+    if keys[pygame.K_g] and grenade.key_g_not_pressed == False:
+        mouse_pos = pygame.mouse.get_pos()
+        grenade.throw(mouse_pos)
+
+    if keys[pygame.K_f]:
+        player.fire_laser()
+        player.check_laser_hit(enemies)
+
     #print(grenade.key_g_not_pressed)
     if grenade.exploded:
         grenade.key_g_not_pressed = True
 
-    print(enemies)
 
     move_ticker = 0
     if len(bullet_system.bullet_trail) > 0:
