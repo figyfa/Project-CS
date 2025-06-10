@@ -58,6 +58,7 @@ class BoundingBox:
             player.in_camera = False
 
 
+
 class Player:
     def __init__(self,cx,cy):
         self.cx = cx
@@ -145,6 +146,58 @@ class Enemy:
                 self.last_hit_time = seconds
                 print("player hit")
 
+
+class Virus(Enemy):
+    def __init__(self):
+        super().__init__(random.randint(0,500),random.randint(0,500))
+        self.clone_cooldown = 0
+        self.colour = (255,0,0)
+        self.deciding_where = False
+        self.tx = 0
+        self.ty = 0
+        self.counter = 0
+
+    def draw(self):
+        pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
+
+    def evaluate_health(self):
+        if 100 >= (self.health) >= 1:
+            self.colour =(self.colour[0],255 * (self.health / 100),self.colour[2])
+        if self.health <= 0:
+            self.can_move = 0
+
+    def clone_if_can(self,enemies):
+        if self.clone_cooldown <= 0:
+            self.clone_cooldown = 5
+            enemies.insert(0,Enemy(self.cx,self.cy))
+            world.objects.append(enemies[0])
+
+    def decrement_cooldown(self):
+        self.clone_cooldown -= (1/FPS)
+
+    def beeline(self,player):
+        if self.health > 0:
+            if self.deciding_where:
+                self.tx = random.randint(-30,30)
+                self.ty = random.randint(-30,30)
+                self.deciding_where = False
+                self.counter = 3
+
+            elif not self.deciding_where:
+                self.deciding_where = False
+                magnitude = math.sqrt((self.tx)**2 + (self.ty)**2)
+                if magnitude == 0:
+                    self.deciding_where = True
+                else:
+                    self.tx = self.tx / magnitude
+                    self.ty = self.ty / magnitude
+                    self.cx += self.tx
+                    self.cy += self.ty
+                    self.counter -= (1/FPS)
+
+            if self.counter <= 0:
+                self.deciding_where = True
+
 class Grenade:
     def __init__(self):
         self.cooking = False
@@ -160,22 +213,25 @@ class Grenade:
         self.key_g_not_pressed = True
         self.x_step = 1
         self.y_step = 1
+        self.grenade_active = False
 
     def arm(self):
-        self.cooking = True
-        if self in world.objects:
-            world.objects.remove(self)
-        if not self.current_time_decided:
-            self.current_time = seconds
-            self.current_time_decided = True
-            print("Cooking 1")
-        print("Cooking 2")
+        if self.grenade_active == False:
+            self.grenade_active = True
+            self.cooking = True
+            if self in world.objects:
+                world.objects.remove(self)
+            if not self.current_time_decided:
+                self.current_time = seconds
+                self.current_time_decided = True
+                print("Cooking 1")
+            print("Cooking 2")
 
-        if seconds >= self.current_time + 3 and self.thrown == False:
-            self.current_time_decided = False
-            self.cooking = False
-            print("Exploding in hand")
-            self.explode()
+            if seconds >= self.current_time + 3 and self.thrown == False:
+                self.current_time_decided = False
+                self.cooking = False
+                print("Exploding in hand")
+                self.explode()
 
     def throw(self,direction):
         self.cooking = False
@@ -234,6 +290,7 @@ class Grenade:
 
     def explode(self):
         self.exploded = False
+        self.grenade_active = False
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy), self.radius)
         for enemy in enemies:
             if calc_distance(self,enemy) < 0:
@@ -265,9 +322,9 @@ class Bullet_trail:
         got_hit_this_frame = False
         while not found and index < len(self.bullet_trail):
 
-            for enemy in enemies:
-                if calc_distance_circle_and_point(enemy, self.bullet_trail[index]) <= 0 and got_hit_this_frame == False:
-                    enemy.health -= 20
+            for i in range(len(enemies)-1,-1,-1):
+                if calc_distance_circle_and_point(enemies[i], self.bullet_trail[index]) <= 0 and got_hit_this_frame == False:
+                    enemies[i].health -= 20
                     #print(enemy.health)
                     #print("oof")
                     #print(enemy.colour)
@@ -424,16 +481,19 @@ class GameWorld:
 
 island = Island((0, 255, 60,50),1000,750,450)
 
-
+viruses = []
 camera_follow = BoundingBox()
 player = Player(600,300)
 world = GameWorld(player)
 grenade = Grenade()
-
+virus = Virus()
 world.objects.append(island)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(10)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(1)]
 for enemy in enemies:
     world.objects.append(enemy)
+viruses.append(virus)
+enemies.append(virus)
+world.objects.append(virus)
 bullet_system = Bullet_trail()
 frames = 0
 while running:
@@ -473,10 +533,11 @@ while running:
         mouse_pos = pygame.mouse.get_pos()
         grenade.throw(mouse_pos)
 
+    #print(grenade.key_g_not_pressed)
     if grenade.exploded:
         grenade.key_g_not_pressed = True
 
-
+    print(enemies)
 
     move_ticker = 0
     if len(bullet_system.bullet_trail) > 0:
@@ -601,7 +662,15 @@ while running:
         enemy.evaluate_health()
         enemy.clean_up()
         enemy.scan_for_friendlies(enemies)
-        print(enemy.health)
+        #print(enemy.health)
+
+    for virus in viruses:
+        if virus.health > 0:
+            virus.clone_if_can(enemies)
+            virus.decrement_cooldown()
+        virus.evaluate_health()
+        virus.clean_up()
+        virus.scan_for_friendlies(enemies)
 
     camera_follow.scan_for_player(player)
 
