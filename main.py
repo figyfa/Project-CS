@@ -252,8 +252,10 @@ class Grenade:
         self.x_step = 1
         self.y_step = 1
         self.grenade_active = False
+        self.capacity = 3
 
     def arm(self):
+        print("Arming")
         if self.grenade_active == False:
             self.grenade_active = True
             self.cooking = True
@@ -277,6 +279,8 @@ class Grenade:
         #print(seconds,self.current_time+3,self.distance_travelled)
         if self.thrown == False:
             world.objects.append(self)
+            print("Added")
+            self.grenade_active = True
 
             self.cx = player.cx
             self.cy = player.cy
@@ -287,18 +291,24 @@ class Grenade:
 
             self.y_step = dy/magnitude
             self.x_step = dx/magnitude
-            print(magnitude)
-            print(self.x_step,self.y_step)
+            #print(magnitude)
+            #print(self.x_step,self.y_step)
 
         self.thrown = True
-        if seconds <= self.current_time + 3 and self.distance_travelled < 3000 and self.thrown:
-            self.cx = self.cx + self.x_step * (3 - (self.distance_travelled * 0.02))
-            self.cy = self.cy + self.y_step * (3 - (self.distance_travelled * 0.02))
-            print(self.x_step,self.y_step)
+        if seconds <= self.current_time + 3 and self.distance_travelled < 3000 and self.thrown and self.grenade_active:
+            self.cx = self.cx + self.x_step * (5 - (self.distance_travelled * 0.02))
+            self.cy = self.cy + self.y_step * (5 - (self.distance_travelled * 0.02))
+            #print(self.x_step,self.y_step)
 
             self.distance_travelled += 1
 
             pygame.draw.circle(screen,(252,231,223),(self.cx,self.cy),10)
+
+            for enemy in enemies:
+                if math.sqrt((self.cx - enemy.cx) ** 2 + (self.cy - enemy.cy) ** 2) < (10 + enemy.radius):
+                    self.grenade_active = False
+                    self.thrown = False
+                    self.explode()
 
             '''
             if direction[0] > self.cx:
@@ -339,7 +349,10 @@ class Grenade:
         self.key_g_not_pressed = True
         self.distance_travelled = 0
         print(f"Damage administered around {self.cx,self.cy}")
-        world.objects.remove(self)
+        if self in world.objects:
+            world.objects.remove(self)
+
+        self.current_time_decided = False
 
 
 
@@ -353,6 +366,9 @@ class Bullet_trail:
         self.color = (125,125,125)
         self.bullet_trail = []
         self.deadly_bullet = ()
+        self.current_bulletx = 0
+        self.current_bullety = 0
+        self.fire_rate = 0
 
     def check_hit(self, enemies):
         found = False
@@ -378,87 +394,22 @@ class Bullet_trail:
         except:
             self.deadly_bullet = ()
 
-    def create_shot(self,player,destination):
-        MAX_RANGE = 20 * (enemies[0].radius - 2)
-        self.cx = player.cx
-        self.cy = player.cy
-        if (destination[0] - player.cx) != 0:
-            gradient = (destination[1] - player.cy) / (destination[0] - player.cx)
-        else:
-            gradient = 9999
-        gradient = abs(gradient)
+    def create_shot(self,player,destination,fire_rate):
+        if self.fire_rate <= 0:
+            self.fire_rate = fire_rate
+            magnitude = math.sqrt((destination[0] - player.cx) ** 2 + (destination[1] - player.cy) ** 2)
+            self.xstep = ((destination[0] - player.cx) / magnitude) * 20
+            self.ystep = ((destination[1] - player.cy) / magnitude) * 20
+            self.current_bulletx = player.cx
+            self.current_bullety = player.cy
+            self.bullet_trail.append((self.current_bulletx, self.current_bullety))
 
-        if destination[1] < player.cy and destination[0] > player.cx:
-            #print("Shooting up and right")
-            if gradient > 1:
-                for i in range(20):
-                    self.bullet_trail.append((self.cx,self.cy))
-                    self.cy -= (enemy.radius - 2)
-                    self.cx += (1/gradient)* (enemy.radius - 2)
-
-
-            elif 0 <= gradient <= 1:
-                for i in range(20):
-                    self.bullet_trail.append((self.cx,self.cy))
-                    self.cx += (enemy.radius - 2)
-                    self.cy -= gradient * (enemy.radius - 2)
-
-        elif destination[1] < player.cy and destination[0] < player.cx:
-            #print("shooting up and left")
-            if gradient > 1:
-                for i in range(20):
-                    self.bullet_trail.append((self.cx,self.cy))
-                    self.cy -= (enemy.radius - 2)
-                    self.cx -= (1/gradient) * (enemy.radius - 2)
-            elif 0 <= gradient <= 1:
-                for i in range(20):
-                    self.bullet_trail.append((self.cx,self.cy))
-                    self.cx -= (enemy.radius - 2)
-                    self.cy -= gradient * (enemy.radius - 2)
-
-        elif destination[1] > player.cy and destination[0] < player.cx:
-            #print("shooting down and left")
-            if gradient > 1:
-                for i in range(20):
-                    self.bullet_trail.append((self.cx,self.cy))
-                    self.cy += (enemy.radius - 2)
-                    self.cx -= (1/gradient) * (enemy.radius - 2)
-
-            elif 0 <= gradient <= 1:
-                for i in range(20):
-                    self.bullet_trail.append((self.cx,self.cy))
-                    self.cx -= (enemy.radius - 2)
-                    self.cy += gradient * (enemy.radius - 2)
-
-        elif destination[1] > player.cy and destination[0] > player.cx:
-            #print("Shooting down and right")
-            if gradient > 1:
-                for i in range(20):
-                    self.bullet_trail.append((self.cx,self.cy))
-                    self.cy += (enemy.radius - 2)
-                    self.cx += (1/gradient) * (enemy.radius - 2)
-
-            elif 0 <= gradient <= 1:
-                for i in range(20):
-                    self.bullet_trail.append((self.cx,self.cy))
-                    self.cx += (enemy.radius - 2)
-                    self.cy += gradient * (enemy.radius - 2)
-        max_distance_index = 0
-        max_found = False
-
-        try:
-            while calc_distance_circle_and_point(player,self.bullet_trail[max_distance_index]) < MAX_RANGE and max_found == False:
-                max_distance_index += 1
-                if max_distance_index >= len(self.bullet_trail):
-                    break
-                if calc_distance_circle_and_point(player,self.bullet_trail[max_distance_index]) >= MAX_RANGE:
-                    max_found = True
-        except:
-            max_distance_index = len(self.bullet_trail) - 1
-
-        if max_found == True:
-            self.bullet_trail = self.bullet_trail[:max_distance_index + 1]
-
+            for i in range(20):
+                self.current_bulletx += self.xstep
+                self.current_bullety += self.ystep
+                self.bullet_trail.append((self.current_bulletx, self.current_bullety))
+    def decrement_cooldown(self,fire_rate):
+        self.fire_rate = self.fire_rate - (1/FPS)
 
 
     def draw(self, player):
@@ -525,7 +476,7 @@ world = GameWorld(player)
 grenade = Grenade()
 world.objects.append(island)
 enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(5)]
-viruses = [Virus() for i in range(10)]
+viruses = [Virus() for j in range(1)]
 for virus in viruses:
     enemies.append(virus)
 for enemy in enemies:
@@ -554,7 +505,7 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
 
-            bullet_system.create_shot(player,pygame.mouse.get_pos())
+            bullet_system.create_shot(player,pygame.mouse.get_pos(),0.2)
             bullet_system.check_hit(enemies)
             #print(enemy.health)
 
@@ -715,6 +666,9 @@ while running:
         virus.scan_for_friendlies(enemies)
 
     camera_follow.scan_for_player(player)
+
+    if 1 == 1:
+        bullet_system.decrement_cooldown(0.2)
 
     pygame.display.flip()
     fpsClock.tick(FPS)
