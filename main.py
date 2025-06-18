@@ -242,10 +242,14 @@ class Grenade_v2:
         self.cy = 0
         self.radius = 100
         self.actual_radius = 5
-        self.detonation_time = 3
-        self.colour = (0,0,0)
+        self.detonation_time = 1
+        self.colour = (123,123,123)
+        self.exploded = False
+        self.thrown = False
+        self.pos = ()
 
     def cook(self):
+        print("cooking")
         self.detonation_time -= (1/FPS)
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.actual_radius)
         if self.detonation_time <= 0:
@@ -253,23 +257,44 @@ class Grenade_v2:
             self.explode()
 
     def throw(self,player,target):
+        if not self.thrown:
+            self.cx = player.cx
+            self.cy = player.cy
+            self.thrown = True
+            self.pos = (self.cx,self.cy)
+
+
+        print("throwing")
         pygame.draw.circle(screen, self.colour, (self.cx,self.cy),self.actual_radius)
+        print(target)
+        print(self.pos)
         self.detonation_time -= (1/FPS)
         if self.detonation_time <= 0:
             print("Exploding while travelling")
+            self.thrown = False
             self.explode()
+        for i in range(len(enemies)):
+            if calc_distance_circle_and_point(enemies[i],self.pos) < 5 and player.health > 0:
+                self.thrown = False
+                print("Exploding on collision")
+                self.explode()
 
-        dy = target[1]-player.cx
-        dx = target[0]-player.cy
+        dy = target[1] - self.cy
+        dx = target[0] - self.cx
 
-        magnitude = math.sqrt((dx**2) + (dy**2))
-        dy = dy/magnitude
-        dx = dx/magnitude
+        magnitude = math.sqrt((dx ** 2) + (dy ** 2))
+        dy = (dy / magnitude) * 5
+        dx = (dx / magnitude) * 5
+
+
 
         self.cx += dx
         self.cy += dy
 
+        self.pos = (self.cx,self.cy)
+
     def explode(self):
+        print("exploding")
         self.exploded = True
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy), self.radius)
         for enemy in enemies:
@@ -277,130 +302,6 @@ class Grenade_v2:
                 enemy.health = enemy.health - 30
         if calc_distance(self, player) < 0:
             player.health = player.health - 30
-
-
-class Grenade:
-    def __init__(self):
-        self.cooking = False
-        self.thrown = False
-        self.exploded = False
-        self.current_time = 0
-        self.current_time_decided = False
-        self.cx = 0
-        self.cy = 0
-        self.colour = (123,52,231)
-        self.distance_travelled = 0
-        self.radius = 100
-        self.key_g_not_pressed = True
-        self.x_step = 1
-        self.y_step = 1
-        self.grenade_active = False
-        self.capacity = 3
-
-    def arm(self):
-        print("Arming")
-        if self.grenade_active == False:
-            self.grenade_active = True
-            self.cooking = True
-            if self in world.objects:
-                world.objects.remove(self)
-            if not self.current_time_decided:
-                self.current_time = seconds
-                self.current_time_decided = True
-                print("Cooking 1")
-            print("Cooking 2")
-
-            if seconds >= self.current_time + 3 and self.thrown == False:
-                self.current_time_decided = False
-                self.cooking = False
-                print("Exploding in hand")
-                self.explode()
-
-    def throw(self,direction):
-        self.cooking = False
-
-        #print(seconds,self.current_time+3,self.distance_travelled)
-        if self.thrown == False:
-            world.objects.append(self)
-            print("Added")
-            self.grenade_active = True
-
-            self.cx = player.cx
-            self.cy = player.cy
-            dy = direction[1] - player.cy
-            dx = direction[0] - player.cx
-
-            magnitude = math.sqrt((dx * dx) + (dy * dy))
-
-            self.y_step = dy/magnitude
-            self.x_step = dx/magnitude
-            #print(magnitude)
-            #print(self.x_step,self.y_step)
-
-        self.thrown = True
-        if seconds <= self.current_time + 3 and self.distance_travelled < 3000 and self.thrown and self.grenade_active:
-            print("Moving")
-            self.cx = self.cx + self.x_step * (5 - (self.distance_travelled * 0.02))
-            self.cy = self.cy + self.y_step * (5 - (self.distance_travelled * 0.02))
-            #print(self.x_step,self.y_step)
-
-            self.distance_travelled += 1
-
-            pygame.draw.circle(screen,(252,231,223),(self.cx,self.cy),10)
-
-            for enemy in enemies:
-                if math.sqrt((self.cx - enemy.cx) ** 2 + (self.cy - enemy.cy) ** 2) < (10 + enemy.radius):
-                    print("Collided with enemy")
-                    self.grenade_active = False
-                    self.thrown = False
-                    self.explode()
-
-            '''
-            if direction[0] > self.cx:
-                if self.angle_to_horz > 0:
-                    self.cx = self.cx + 10
-                    self.cy = self.cy - math.tan(self.angle_to_horz)
-                elif self.angle_to_horz <= 0:
-                    self.cx = self.cx + 10
-                    self.cy = self.cy + math.tan(self.angle_to_horz)
-            else:
-                if self.angle_to_horz > 0:
-                    self.cx = self.cx - 10
-                    self.cy = self.cy - math.tan(self.angle_to_horz)
-                elif self.angle_to_horz <= 0:
-                    self.cx = self.cx - 10
-                    self.cy = self.cy + math.tan(self.angle_to_horz)
-
-            self.distance_travelled += 1
-            '''
-
-        elif seconds > self.current_time + 3:
-            print("Exploding after thrown")
-            self.current_time_decided = False
-            self.exploded = True
-            self.thrown = False
-            self.explode()
-
-    def explode(self):
-        self.grenade_active = False
-        pygame.draw.circle(screen, self.colour, (self.cx, self.cy), self.radius)
-        for enemy in enemies:
-            if calc_distance(self,enemy) < 0:
-                enemy.health = enemy.health - 30
-        if calc_distance(self,player) < 0:
-            player.health = player.health - 30
-
-        self.key_g_not_pressed = True
-        self.distance_travelled = 0
-        print(f"Damage administered around {self.cx,self.cy}")
-        if self in world.objects:
-            world.objects.remove(self)
-
-        self.current_time_decided = False
-
-
-
-
 
 class Bullet_trail:
     def __init__(self):
@@ -528,6 +429,7 @@ for enemy in enemies:
     world.objects.append(enemy)
 bullet_system = Bullet_trail()
 frames = 0
+key_g_held_down = False
 while running:
     frames = frames + 1
     seconds = frames / FPS
@@ -550,20 +452,28 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
 
-            bullet_system.create_shot(player,pygame.mouse.get_pos(),0.2)
+            bullet_system.create_shot(player,pygame.mouse.get_pos(),0.1)
             bullet_system.check_hit(enemies)
             #print(enemy.health)
 
-    if keys[pygame.K_g] and key_g_not_pressed:
+    if key_g_held_down and key_g_not_pressed:
         active_grenades.append(Grenade_v2())
+        world.objects.append(active_grenades[-1])
+        mouse_pos = pygame.mouse.get_pos()
         key_g_not_pressed = False
+
+    if key_g_held_down and active_grenades:
         active_grenades[-1].cook()
+
+    if keys[pygame.K_g]:
+        key_g_held_down = True
+    else:
+        key_g_held_down = False
 
     #print(keys[pygame.K_g],grenade.key_g_not_pressed)
 
 
-    if not keys[pygame.K_g] and key_g_not_pressed == False:
-        mouse_pos = pygame.mouse.get_pos()
+    if not key_g_held_down and key_g_not_pressed == False:
         active_grenades[-1].throw(player,mouse_pos)
         #key_g_not_pressed = True
 
@@ -574,9 +484,9 @@ while running:
     #print(grenade.key_g_not_pressed)
     for grenade in active_grenades:
         if grenade.exploded:
-            active_grenades.remove(grenade)
             key_g_not_pressed = True
             print("Grenade exploded")
+            active_grenades.remove(grenade)
 
 
     move_ticker = 0
@@ -715,7 +625,7 @@ while running:
     camera_follow.scan_for_player(player)
 
     if 1 == 1:
-        bullet_system.decrement_cooldown(0.2)
+        bullet_system.decrement_cooldown(0.1)
 
     pygame.display.flip()
     fpsClock.tick(FPS)
