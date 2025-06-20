@@ -63,8 +63,9 @@ class Player:
     def __init__(self,cx,cy):
         self.cx = cx
         self.cy = cy
-        self.vy = 0
-        self.vx = 0
+        self.vy = 3
+        self.vx = 3
+        self.vxy = math.sqrt(self.vx**2 + self.vy**2)
         self.in_camera = True
         self.hcx = cx
         self.hcy = cy
@@ -74,6 +75,16 @@ class Player:
         self.colour = (0,0,0)
         self.laser_trail = []
         self.first_run = True
+
+    def decelerate(self):
+        if self.vx < 0:
+            self.vx += 0.1
+        elif self.vx > 0:
+            self.vx -= 0.1
+        if self.vy > 0:
+            self.vy -= 0.1
+        elif self.vy < 0:
+            self.vy += 0.1
     def draw(self):
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
@@ -420,9 +431,9 @@ key_g_not_pressed = True
 player = Player(600,300)
 world = GameWorld(player)
 world.objects.append(island)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(5)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(0)]
 active_grenades = []
-viruses = [Virus() for j in range(1)]
+viruses = [Virus() for j in range(10)]
 for virus in viruses:
     enemies.append(virus)
 for enemy in enemies:
@@ -597,6 +608,10 @@ while running:
                 world.move_camera(["right"])
                 player.hcx = player.cx + 3 * player.sprinting
                 moved = True
+
+    if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
+        player.decelerate()
+        print("decellerating")
 
 
 
