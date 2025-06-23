@@ -158,6 +158,7 @@ class Enemy:
     def evaluate_health(self):
         if 100 >= (self.health) >= 1:
             self.colour =(255,255 * (self.health / 100),255)
+            screen.blit(imp, (self.cx-32,self.cy-32))
         if self.health <= 0:
             self.can_move = 0
 
@@ -432,6 +433,7 @@ player = Player(600,300)
 world = GameWorld(player)
 world.objects.append(island)
 enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(0)]
+imp = pygame.image.load("./image/virus_death00.png").convert()
 active_grenades = []
 viruses = [Virus() for j in range(10)]
 for virus in viruses:
