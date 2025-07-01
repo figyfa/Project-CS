@@ -1,6 +1,7 @@
 import pygame
 import math
 import random
+import socket
 
 pygame.init()
 
