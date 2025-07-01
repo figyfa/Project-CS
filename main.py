@@ -140,6 +140,12 @@ class Enemy:
         self.can_move = 1
         self.enemies_nearby = 0
         self.last_hit_time = -1
+        self.image_list = []
+        for i in range(10):
+            imp = pygame.image.load(f"./image/virus_death0{i}.png").convert_alpha()
+            imp.set_colorkey((0, 0, 0))
+            imp.convert_alpha()
+            self.image_list.insert(0,imp)
     '''
     def get_hit(self,bullets):
         found = False
@@ -158,7 +164,8 @@ class Enemy:
     def evaluate_health(self):
         if 100 >= (self.health) >= 1:
             self.colour =(255,255 * (self.health / 100),255)
-            screen.blit(imp, (self.cx-32,self.cy-32))
+            screen.blit(self.image_list[self.health//11], (self.cx-32,self.cy-32))
+            print(self.image_list)
         if self.health <= 0:
             self.can_move = 0
 
@@ -173,7 +180,8 @@ class Enemy:
 
 
     def draw(self):
-        pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
+        if debugging:
+            pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
 
     def beeline(self,player):
         angle = math.pi
@@ -254,13 +262,17 @@ class Grenade_v2:
         self.cy = 0
         self.radius = 100
         self.actual_radius = 5
-        self.detonation_time = 1
+        self.detonation_time = 5
         self.colour = (123,123,123)
         self.exploded = False
         self.thrown = False
         self.pos = ()
+        self.dx = 0
+        self.dy = 0
 
     def cook(self):
+        self.cx = player.cx
+        self.cy = player.cy
         print("cooking")
         self.detonation_time -= (1/FPS)
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.actual_radius)
@@ -274,6 +286,12 @@ class Grenade_v2:
             self.cy = player.cy
             self.thrown = True
             self.pos = (self.cx,self.cy)
+            self.dy = target[1] - self.cy
+            self.dx = target[0] - self.cx
+
+            magnitude = math.sqrt((self.dx ** 2) + (self.dy ** 2))
+            self.dy = (self.dy / magnitude) * 5
+            self.dx = (self.dx / magnitude) * 5
 
 
         print("throwing")
@@ -291,17 +309,8 @@ class Grenade_v2:
                 print("Exploding on collision")
                 self.explode()
 
-        dy = target[1] - self.cy
-        dx = target[0] - self.cx
-
-        magnitude = math.sqrt((dx ** 2) + (dy ** 2))
-        dy = (dy / magnitude) * 5
-        dx = (dx / magnitude) * 5
-
-
-
-        self.cx += dx
-        self.cy += dy
+        self.cx += self.dx
+        self.cy += self.dy
 
         self.pos = (self.cx,self.cy)
 
@@ -432,10 +441,16 @@ key_g_not_pressed = True
 player = Player(600,300)
 world = GameWorld(player)
 world.objects.append(island)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(0)]
-imp = pygame.image.load("./image/virus_death00.png").convert()
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(10)]
 active_grenades = []
-viruses = [Virus() for j in range(10)]
+
+pygame.font.init()
+my_font = pygame.font.SysFont('Comic Sans MS', 30)
+
+text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
+
+viruses = [Virus() for j in range(1)]
+main_menu = True
 for virus in viruses:
     enemies.append(virus)
 for enemy in enemies:
@@ -444,207 +459,229 @@ bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
 while running:
-    frames = frames + 1
-    seconds = frames / FPS
-    #print(seconds)
-    #print(fpsClock)
-    screen.fill((107, 191, 255))
-    island.draw()
-    if debugging:
-        camera_follow.draw()
-    player.draw()
-    for enemy in enemies:
-        enemy.draw()
-        enemy.beeline(player)
-    keys = pygame.key.get_pressed()
-    world.keys = pygame.key.get_pressed()
+    if main_menu:
+        menu_screen = pygame.Surface((1500,900))
+        menu_screen.fill((255,255,45))
+        screen.blit(menu_screen,(0,0))
+        screen.blit(text_surface, (750, 450))
 
-    for event in pygame.event.get():
+        for event in pygame.event.get():
 
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                main_menu = False
+        pygame.display.flip()
+    else:
+        frames = frames + 1
+        seconds = frames / FPS
+        #print(seconds)
+        #print(fpsClock)
+        screen.fill((107, 191, 255))
+        island.draw()
+        if debugging:
+            camera_follow.draw()
+        player.draw()
+        for enemy in enemies:
+            enemy.draw()
+            enemy.beeline(player)
+        keys = pygame.key.get_pressed()
+        world.keys = pygame.key.get_pressed()
 
-            bullet_system.create_shot(player,pygame.mouse.get_pos(),0.1)
-            bullet_system.check_hit(enemies)
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+
+                bullet_system.create_shot(player,pygame.mouse.get_pos(),0.1)
+                bullet_system.check_hit(enemies)
+                #print(enemy.health)
+
+        if key_g_held_down and key_g_not_pressed:
+            print("Created grenade")
+            active_grenades.append(Grenade_v2())
+            world.objects.append(active_grenades[-1])
+            mouse_pos = pygame.mouse.get_pos()
+            key_g_not_pressed = False
+
+        if key_g_held_down and active_grenades:
+            print("Grenade cooking")
+            active_grenades[-1].cook()
+
+        if keys[pygame.K_g]:
+            key_g_held_down = True
+        else:
+            key_g_held_down = False
+
+        print(active_grenades)
+
+        #print(keys[pygame.K_g],grenade.key_g_not_pressed)
+
+
+        if not key_g_held_down and key_g_not_pressed == False:
+            print("Key g just released")
+            if active_grenades:
+                active_grenades[-1].throw(player,mouse_pos)
+            key_g_not_pressed = True
+
+        if keys[pygame.K_f]:
+            player.fire_laser()
+            player.check_laser_hit(enemies)
+
+        #print(grenade.key_g_not_pressed)
+        for grenade in active_grenades:
+            if grenade.exploded:
+                print("Grenade exploded")
+                active_grenades.remove(grenade)
+            elif grenade.thrown:
+                grenade.throw(player,mouse_pos)
+
+
+        move_ticker = 0
+        if len(bullet_system.bullet_trail) > 0:
+            bullet_system.draw(player)
+
+        if keys[pygame.K_LSHIFT]:
+            player.sprinting = 2
+        else:
+            player.sprinting = 1
+
+        if player.in_camera:
+            if keys[pygame.K_w]:
+                if move_ticker == 0:
+                    move_ticker = 10
+                    player.hcy -= 3 * player.sprinting
+                    player.cy = player.hcy
+                    #print("Moving up",player.cx,player.cy)
+                    if keys[pygame.K_a]:
+                        player.hcx -= 2.121 * player.sprinting
+                        player.hcy += 0.879 * player.sprinting
+                        player.cx = player.hcx
+                        #print("Moving up and left")
+                    if keys[pygame.K_d]:
+                        player.hcx += 2.121 * player.sprinting
+                        player.hcy += 0.879 * player.sprinting
+                        player.cx = player.hcx
+
+            if keys[pygame.K_s]:
+                if move_ticker == 0:
+                    move_ticker = 10
+                    player.hcy += 3 * player.sprinting
+                    player.cy = player.hcy
+                    #print("Moving down")
+                    if keys[pygame.K_a]:
+                        player.hcx -= 2.121 * player.sprinting
+                        player.hcy -= 0.879 * player.sprinting
+                        player.cx = player.hcx
+                    if keys[pygame.K_d]:
+                        #print("Moving down and right")
+                        player.hcx += 2.121 * player.sprinting
+                        player.hcy -= 0.879 * player.sprinting
+                        player.cx = player.hcx
+
+            if keys[pygame.K_a]:
+                if move_ticker == 0:
+                    move_ticker = 10
+                    player.hcx -= 3 * player.sprinting
+                    player.cx = player.hcx
+                    #print("moving left")
+
+            if keys[pygame.K_d]:
+                if move_ticker == 0:
+                    move_ticker = 10
+                    player.hcx += 3 * player.sprinting
+                    player.cx = player.hcx
+                    #print("moving right")
+
+        else:
+            moved = False
+            if keys[pygame.K_w] and not moved:
+                if move_ticker == 0:
+                    if not keys[pygame.K_a] and not keys[pygame.K_d]:
+                        move_ticker = 10
+                        world.move_camera(["up"])
+                        player.hcy = player.cy - 3 * player.sprinting
+                        moved = True
+                    if keys[pygame.K_a] and not moved:
+                        world.move_camera(["up", "left"])
+                        player.hcx = player.cx - 3 * player.sprinting
+                        player.hcy = player.cy - 3 * player.sprinting
+                        moved = True
+                    if keys[pygame.K_d] and not moved:
+                        world.move_camera(["up", "right"])
+                        player.hcx = player.cx + 3 * player.sprinting
+                        player.hcy = player.cy - 3 * player.sprinting
+                        moved = True
+
+            if keys[pygame.K_s] and not moved:
+                if move_ticker == 0:
+                    if not keys[pygame.K_a] and not keys[pygame.K_d]:
+                        move_ticker = 10
+                        world.move_camera(["down"])
+                        player.hcy = player.cy + 3 * player.sprinting
+                        moved = True
+                    if keys[pygame.K_a] and not moved:
+                        world.move_camera(["down", "left"])
+                        player.hcx = player.cx - 3 * player.sprinting
+                        player.hcy = player.cy + 3 * player.sprinting
+                        moved = True
+                    if keys[pygame.K_d] and not moved:
+                        world.move_camera(["down", "right"])
+                        player.hcx = player.cx + 3 * player.sprinting
+                        player.hcy = player.cy + 3 * player.sprinting
+                        moved = True
+
+            if keys[pygame.K_a] and not moved:
+                if move_ticker == 0:
+                    move_ticker = 10
+                    world.move_camera(["left"])
+                    player.hcx = player.cx - 3 * player.sprinting
+                    moved = True
+
+
+            if keys[pygame.K_d] and not moved:
+                if move_ticker == 0:
+                    move_ticker = 10
+                    world.move_camera(["right"])
+                    player.hcx = player.cx + 3 * player.sprinting
+                    moved = True
+
+        if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
+            player.decelerate()
+            #print("decellerating")
+
+
+
+        if debugging:
+            if keys[pygame.K_UP]:
+                player.in_camera = False
+            pygame.draw.circle(screen,(255,50,255),(player.hcx,player.hcy),10)
+
+        bullet_system.clean_shot()
+        player.update_health()
+
+        for enemy in enemies:
+            enemy.evaluate_health()
+            enemy.clean_up()
+            enemy.scan_for_friendlies(enemies)
             #print(enemy.health)
 
-    if key_g_held_down and key_g_not_pressed:
-        active_grenades.append(Grenade_v2())
-        world.objects.append(active_grenades[-1])
-        mouse_pos = pygame.mouse.get_pos()
-        key_g_not_pressed = False
+        for virus in viruses:
+            if virus.health > 0:
+                virus.clone_if_can(enemies)
+                virus.decrement_cooldown()
+            virus.evaluate_health()
+            virus.clean_up()
+            virus.scan_for_friendlies(enemies)
 
-    if key_g_held_down and active_grenades:
-        active_grenades[-1].cook()
+        camera_follow.scan_for_player(player)
 
-    if keys[pygame.K_g]:
-        key_g_held_down = True
-    else:
-        key_g_held_down = False
-
-    #print(keys[pygame.K_g],grenade.key_g_not_pressed)
+        if 1 == 1:
+            bullet_system.decrement_cooldown(0.1)
 
 
-    if not key_g_held_down and key_g_not_pressed == False:
-        active_grenades[-1].throw(player,mouse_pos)
-        #key_g_not_pressed = True
-
-    if keys[pygame.K_f]:
-        player.fire_laser()
-        player.check_laser_hit(enemies)
-
-    #print(grenade.key_g_not_pressed)
-    for grenade in active_grenades:
-        if grenade.exploded:
-            key_g_not_pressed = True
-            print("Grenade exploded")
-            active_grenades.remove(grenade)
-
-
-    move_ticker = 0
-    if len(bullet_system.bullet_trail) > 0:
-        bullet_system.draw(player)
-
-    if keys[pygame.K_LSHIFT]:
-        player.sprinting = 2
-    else:
-        player.sprinting = 1
-
-    if player.in_camera:
-        if keys[pygame.K_w]:
-            if move_ticker == 0:
-                move_ticker = 10
-                player.hcy -= 3 * player.sprinting
-                player.cy = player.hcy
-                #print("Moving up",player.cx,player.cy)
-                if keys[pygame.K_a]:
-                    player.hcx -= 2.121 * player.sprinting
-                    player.hcy += 0.879 * player.sprinting
-                    player.cx = player.hcx
-                    #print("Moving up and left")
-                if keys[pygame.K_d]:
-                    player.hcx += 2.121 * player.sprinting
-                    player.hcy += 0.879 * player.sprinting
-                    player.cx = player.hcx
-
-        if keys[pygame.K_s]:
-            if move_ticker == 0:
-                move_ticker = 10
-                player.hcy += 3 * player.sprinting
-                player.cy = player.hcy
-                #print("Moving down")
-                if keys[pygame.K_a]:
-                    player.hcx -= 2.121 * player.sprinting
-                    player.hcy -= 0.879 * player.sprinting
-                    player.cx = player.hcx
-                if keys[pygame.K_d]:
-                    #print("Moving down and right")
-                    player.hcx += 2.121 * player.sprinting
-                    player.hcy -= 0.879 * player.sprinting
-                    player.cx = player.hcx
-
-        if keys[pygame.K_a]:
-            if move_ticker == 0:
-                move_ticker = 10
-                player.hcx -= 3 * player.sprinting
-                player.cx = player.hcx
-                #print("moving left")
-
-        if keys[pygame.K_d]:
-            if move_ticker == 0:
-                move_ticker = 10
-                player.hcx += 3 * player.sprinting
-                player.cx = player.hcx
-                #print("moving right")
-
-    else:
-        moved = False
-        if keys[pygame.K_w] and not moved:
-            if move_ticker == 0:
-                if not keys[pygame.K_a] and not keys[pygame.K_d]:
-                    move_ticker = 10
-                    world.move_camera(["up"])
-                    player.hcy = player.cy - 3 * player.sprinting
-                    moved = True
-                if keys[pygame.K_a] and not moved:
-                    world.move_camera(["up", "left"])
-                    player.hcx = player.cx - 3 * player.sprinting
-                    player.hcy = player.cy - 3 * player.sprinting
-                    moved = True
-                if keys[pygame.K_d] and not moved:
-                    world.move_camera(["up", "right"])
-                    player.hcx = player.cx + 3 * player.sprinting
-                    player.hcy = player.cy - 3 * player.sprinting
-                    moved = True
-
-        if keys[pygame.K_s] and not moved:
-            if move_ticker == 0:
-                if not keys[pygame.K_a] and not keys[pygame.K_d]:
-                    move_ticker = 10
-                    world.move_camera(["down"])
-                    player.hcy = player.cy + 3 * player.sprinting
-                    moved = True
-                if keys[pygame.K_a] and not moved:
-                    world.move_camera(["down", "left"])
-                    player.hcx = player.cx - 3 * player.sprinting
-                    player.hcy = player.cy + 3 * player.sprinting
-                    moved = True
-                if keys[pygame.K_d] and not moved:
-                    world.move_camera(["down", "right"])
-                    player.hcx = player.cx + 3 * player.sprinting
-                    player.hcy = player.cy + 3 * player.sprinting
-                    moved = True
-
-        if keys[pygame.K_a] and not moved:
-            if move_ticker == 0:
-                move_ticker = 10
-                world.move_camera(["left"])
-                player.hcx = player.cx - 3 * player.sprinting
-                moved = True
-
-
-        if keys[pygame.K_d] and not moved:
-            if move_ticker == 0:
-                move_ticker = 10
-                world.move_camera(["right"])
-                player.hcx = player.cx + 3 * player.sprinting
-                moved = True
-
-    if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
-        player.decelerate()
-        print("decellerating")
-
-
-
-    if debugging:
-        if keys[pygame.K_UP]:
-            player.in_camera = False
-        pygame.draw.circle(screen,(255,50,255),(player.hcx,player.hcy),10)
-
-    bullet_system.clean_shot()
-    player.update_health()
-
-    for enemy in enemies:
-        enemy.evaluate_health()
-        enemy.clean_up()
-        enemy.scan_for_friendlies(enemies)
-        #print(enemy.health)
-
-    for virus in viruses:
-        if virus.health > 0:
-            virus.clone_if_can(enemies)
-            virus.decrement_cooldown()
-        virus.evaluate_health()
-        virus.clean_up()
-        virus.scan_for_friendlies(enemies)
-
-    camera_follow.scan_for_player(player)
-
-    if 1 == 1:
-        bullet_system.decrement_cooldown(0.1)
-
+        fpsClock.tick(FPS)
     pygame.display.flip()
-    fpsClock.tick(FPS)
 
 pygame.quit()
