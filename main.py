@@ -3,6 +3,9 @@ import math
 import random
 import socket
 
+IP = "0.0.0.0"
+PORT = 80
+
 pygame.init()
 
 screen = pygame.display.set_mode((1500, 900))
@@ -76,6 +79,8 @@ class Player:
         self.colour = (0,0,0)
         self.laser_trail = []
         self.first_run = True
+        self.wcx = 0
+        self.wcy = 0
 
     def decelerate(self):
         if self.vx < 0:
@@ -127,6 +132,28 @@ class Player:
         self.laser_trail = []
 
 
+
+class Player2 (Player):
+    def __init__(self,cx,cy):
+        super().__init__(cx,cy)
+
+
+    def recv_and_send_data(self):
+        data = proxy_socket.recv(1024).decode()
+        data_to_proxy = f"{data}"
+        proxy_socket.send(data_to_proxy.encode())
+        print(data)
+
+        data = data.split(" ")
+
+        self.cx = float(data[0])
+        self.cy = float(data[1])
+
+    def rectify(self):
+        self.cx -= player.wcx
+        self.cy -= player.wcy
+
+        print(f"Rectified data {self.cx} {self.cy}")
 
 class Enemy:
     def __init__(self,cx,cy):
@@ -440,8 +467,11 @@ island = Island((0, 255, 60,50),1000,750,450)
 camera_follow = BoundingBox()
 key_g_not_pressed = True
 player = Player(600,300)
+player2 = Player2(600,300)
+players = [player,player2]
 world = GameWorld(player)
 world.objects.append(island)
+world.objects.append(player2)
 enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(10)]
 active_grenades = []
 
@@ -459,7 +489,22 @@ for enemy in enemies:
 bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
+
+server_socket = socket.socket()
+server_socket.bind((IP, PORT))
+server_socket.listen()
+print("server on")
+(proxy_socket, proxy_address) = server_socket.accept()
+print("client on")
+
+
 while running:
+
+    #data = proxy_socket.recv(1024).decode()
+    #data_to_proxy = f"{data}"
+    #proxy_socket.send(data_to_proxy.encode())
+    #print(data)
+
     if main_menu:
         menu_screen = pygame.Surface((1500,900))
         menu_screen.fill((255,255,45))
@@ -474,12 +519,19 @@ while running:
                 main_menu = False
         pygame.display.flip()
     else:
+
         frames = frames + 1
         seconds = frames / FPS
         #print(seconds)
         #print(fpsClock)
         screen.fill((107, 191, 255))
         island.draw()
+        player2.draw()
+
+        player2.recv_and_send_data()
+        player2.rectify()
+
+
         if debugging:
             camera_follow.draw()
         player.draw()
@@ -515,7 +567,7 @@ while running:
         else:
             key_g_held_down = False
 
-        print(active_grenades)
+        #print(active_grenades)
 
         #print(keys[pygame.K_g],grenade.key_g_not_pressed)
 
@@ -603,16 +655,21 @@ while running:
                         move_ticker = 10
                         world.move_camera(["up"])
                         player.hcy = player.cy - 3 * player.sprinting
+                        player.wcy = player.wcy - 3 * player.sprinting
                         moved = True
                     if keys[pygame.K_a] and not moved:
                         world.move_camera(["up", "left"])
                         player.hcx = player.cx - 3 * player.sprinting
                         player.hcy = player.cy - 3 * player.sprinting
+                        player.wcx = player.wcx - 3 * player.sprinting
+                        player.wcy = player.wcy - 3 * player.sprinting
                         moved = True
                     if keys[pygame.K_d] and not moved:
                         world.move_camera(["up", "right"])
                         player.hcx = player.cx + 3 * player.sprinting
                         player.hcy = player.cy - 3 * player.sprinting
+                        player.wcx = player.wcx + 3 * player.sprinting
+                        player.wcy = player.wcy - 3 * player.sprinting
                         moved = True
 
             if keys[pygame.K_s] and not moved:
@@ -621,16 +678,21 @@ while running:
                         move_ticker = 10
                         world.move_camera(["down"])
                         player.hcy = player.cy + 3 * player.sprinting
+                        player.wcy = player.wcy + 3 * player.sprinting
                         moved = True
                     if keys[pygame.K_a] and not moved:
                         world.move_camera(["down", "left"])
                         player.hcx = player.cx - 3 * player.sprinting
                         player.hcy = player.cy + 3 * player.sprinting
+                        player.wcx = player.wcx - 3 * player.sprinting
+                        player.wcy = player.wcy + 3 * player.sprinting
                         moved = True
                     if keys[pygame.K_d] and not moved:
                         world.move_camera(["down", "right"])
                         player.hcx = player.cx + 3 * player.sprinting
                         player.hcy = player.cy + 3 * player.sprinting
+                        player.wcx = player.wcx + 3 * player.sprinting
+                        player.wcy = player.wcy + 3 * player.sprinting
                         moved = True
 
             if keys[pygame.K_a] and not moved:
@@ -638,6 +700,7 @@ while running:
                     move_ticker = 10
                     world.move_camera(["left"])
                     player.hcx = player.cx - 3 * player.sprinting
+                    player.wcx = player.wcx - 3 * player.sprinting
                     moved = True
 
 
@@ -646,6 +709,7 @@ while running:
                     move_ticker = 10
                     world.move_camera(["right"])
                     player.hcx = player.cx + 3 * player.sprinting
+                    player.wcx = player.wcx + 3 * player.sprinting
                     moved = True
 
         if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
