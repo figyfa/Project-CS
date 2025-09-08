@@ -4,7 +4,7 @@ import random
 import socket
 
 IP = "0.0.0.0"
-PORT = 80
+PORT = 8000
 
 pygame.init()
 
@@ -141,11 +141,14 @@ class Player2 (Player):
     def recv_and_send_data(self):
         data = proxy_socket.recv(1024).decode()
         data_to_proxy = f"{data}"
+        print(f"Received {data}")
         proxy_socket.send(data_to_proxy.encode())
         print(data)
+        print(f"Sent {data_to_proxy}")
 
         data = data.split(" ")
 
+        print(data)
         self.cx = float(data[0])
         self.cy = float(data[1])
 

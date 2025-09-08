@@ -1,6 +1,6 @@
 import socket
 IP = "0.0.0.0"
-PORT = 80
+PORT = 8000
 
 
 def main():
@@ -13,7 +13,7 @@ def main():
     print("client on")
     while True:
         data = proxy_socket.recv(1024).decode()
-        data_to_proxy = f"{data}"
+        data_to_proxy = f"1 56"
         proxy_socket.send(data_to_proxy.encode())
         print(data)
         if "EXIT" in data_to_proxy:
