@@ -3,7 +3,7 @@ import math
 import random
 import socket
 
-IP = "0.0.0.0"
+IP = "127.0.0.1"
 PORT = 8000
 
 pygame.init()
@@ -140,7 +140,16 @@ class Player2 (Player):
 
     def recv_and_send_data(self):
         data = proxy_socket.recv(1024).decode()
-        data_to_proxy = f"{data}"
+        data_to_proxy = f"{player.cx} {player.cy}"
+        enemy_data = ''
+        for enemy in enemies:
+            if enemy not in viruses:
+                enemy_data_temp = f" {enemy.cx} {enemy.cy} enemy"
+                enemy_data += enemy_data_temp
+            else:
+                enemy_data_temp = f" {enemy.cx} {enemy.cy} virus"
+                enemy_data += enemy_data_temp
+        data_to_proxy += enemy_data
         print(f"Received {data}")
         proxy_socket.send(data_to_proxy.encode())
         print(data)
@@ -199,6 +208,8 @@ class Enemy:
             print(self.image_list)
         if self.health <= 0:
             self.can_move = 0
+            if self in enemies:
+                enemies.remove(self)
 
     def clean_up(self):
         self.got_hit_this_frame = False
@@ -254,6 +265,8 @@ class Virus(Enemy):
             self.colour =(self.colour[0],255 * (self.health / 100),self.colour[2])
         if self.health <= 0:
             self.can_move = 0
+            if self in enemies:
+                enemies.remove(self)
 
     def clone_if_can(self,enemies):
         if self.clone_cooldown <= 0:
@@ -475,7 +488,7 @@ players = [player,player2]
 world = GameWorld(player)
 world.objects.append(island)
 world.objects.append(player2)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(10)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(0)]
 active_grenades = []
 
 pygame.font.init()
@@ -503,11 +516,6 @@ print("client on")
 
 while running:
 
-    #data = proxy_socket.recv(1024).decode()
-    #data_to_proxy = f"{data}"
-    #proxy_socket.send(data_to_proxy.encode())
-    #print(data)
-
     if main_menu:
         menu_screen = pygame.Surface((1500,900))
         menu_screen.fill((255,255,45))
@@ -527,6 +535,9 @@ while running:
         seconds = frames / FPS
         #print(seconds)
         #print(fpsClock)
+
+        print(enemies)
+
         screen.fill((107, 191, 255))
         island.draw()
         player2.draw()
