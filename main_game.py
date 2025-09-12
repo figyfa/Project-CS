@@ -506,7 +506,7 @@ bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
 
-server_socket = socket.socket()
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((IP, PORT))
 server_socket.listen()
 print("server on")
