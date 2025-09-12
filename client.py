@@ -146,8 +146,8 @@ class Player2 (Player):
 
         data = data.split(" ")
         print(data)
-        self.cx = float(data[0])
-        self.cy = float(data[1])
+        player.cx = float(data[0])
+        player.cy = float(data[1])
 
         enemies = []
 
@@ -502,7 +502,7 @@ key_g_held_down = False
     # Use a breakpoint in the code line below to debug your script.
 my_socket = socket.socket()
 my_socket.connect((IP_PROXY, PORT))
-data = (0,0)
+data = [0,0]
 
 while running:
     frames = frames + 1
@@ -510,10 +510,13 @@ while running:
 
     island.draw()
     player2.draw()
+    player.draw()
+
+    data[0] = player2.cx
+    data[1] = player2.cy
 
 
-
-    user_input = (f"{str(int(data[0])+1)} {str(data[1])}")
+    user_input = (f"{str(data[0])} {str(data[1])}")
     user_input = ''.join(user_input)
 
     enemies = player2.recv_and_send_data(user_input)
@@ -655,6 +658,8 @@ while running:
         player2.decelerate()
         # print("decellerating")
 
+    player2.cx = player2.hcx
+    player2.cy = player2.hcy
     if debugging:
         if keys[pygame.K_UP]:
             player2.in_camera = False
