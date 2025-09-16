@@ -160,8 +160,8 @@ class Player2 (Player):
 
         return enemies
     def rectify(self):
-        self.cx -= player.wcx
-        self.cy -= player.wcy
+        player.cx -= player.wcx
+        player.cy -= player.wcy
 
         print(f"Rectified data {self.cx} {self.cy}")
 

@@ -140,7 +140,7 @@ class Player2 (Player):
 
     def recv_and_send_data(self):
         data = proxy_socket.recv(1024).decode()
-        data_to_proxy = f"{player.cx} {player.cy}"
+        data_to_proxy = f"{player.wcx} {player.wcy}"
         enemy_data = ''
         for enemy in enemies:
             if enemy not in viruses:
@@ -163,7 +163,7 @@ class Player2 (Player):
 
     def rectify(self):
         self.cx -= player.wcx
-        self.cy -= player.wcy
+        self.cy += player.wcy
 
         print(f"Rectified data {self.cx} {self.cy}")
 
@@ -620,38 +620,49 @@ while running:
                     move_ticker = 10
                     player.hcy -= 3 * player.sprinting
                     player.cy = player.hcy
+                    player.wcy -= 3 * player.sprinting
                     #print("Moving up",player.cx,player.cy)
                     if keys[pygame.K_a]:
                         player.hcx -= 2.121 * player.sprinting
                         player.hcy += 0.879 * player.sprinting
                         player.cx = player.hcx
+                        player.wcx -= 2.121 * player.sprinting
+                        player.wcy += 0.879 * player.sprinting
                         #print("Moving up and left")
                     if keys[pygame.K_d]:
                         player.hcx += 2.121 * player.sprinting
                         player.hcy += 0.879 * player.sprinting
                         player.cx = player.hcx
+                        player.wcx += 2.121 * player.sprinting
+                        player.wcy += 0.879 * player.sprinting
 
             if keys[pygame.K_s]:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcy += 3 * player.sprinting
                     player.cy = player.hcy
+                    player.wcy += 3 * player.sprinting
                     #print("Moving down")
                     if keys[pygame.K_a]:
                         player.hcx -= 2.121 * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
                         player.cx = player.hcx
+                        player.wcx -= 2.121 * player.sprinting
+                        player.wcy -= 0.879 * player.sprinting
                     if keys[pygame.K_d]:
                         #print("Moving down and right")
                         player.hcx += 2.121 * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
                         player.cx = player.hcx
+                        player.wcx += 2.121 * player.sprinting
+                        player.wcy -= 0.879 * player.sprinting
 
             if keys[pygame.K_a]:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcx -= 3 * player.sprinting
                     player.cx = player.hcx
+                    player.wcx -= 3 * player.sprinting
                     #print("moving left")
 
             if keys[pygame.K_d]:
@@ -659,6 +670,7 @@ while running:
                     move_ticker = 10
                     player.hcx += 3 * player.sprinting
                     player.cx = player.hcx
+                    player.wcx += 3 * player.sprinting
                     #print("moving right")
 
         else:
@@ -669,22 +681,22 @@ while running:
                         move_ticker = 10
                         world.move_camera(["up"])
                         player.hcy = player.cy - 3 * player.sprinting
-                        player.wcy = player.wcy - 3 * player.sprinting
                         moved = True
+                        player.wcy -= 3 * player.sprinting
                     if keys[pygame.K_a] and not moved:
                         world.move_camera(["up", "left"])
                         player.hcx = player.cx - 3 * player.sprinting
                         player.hcy = player.cy - 3 * player.sprinting
-                        player.wcx = player.wcx - 3 * player.sprinting
-                        player.wcy = player.wcy - 3 * player.sprinting
                         moved = True
+                        player.wcy -= 3 * player.sprinting
+                        player.wcx -= 3 * player.sprinting
                     if keys[pygame.K_d] and not moved:
                         world.move_camera(["up", "right"])
                         player.hcx = player.cx + 3 * player.sprinting
                         player.hcy = player.cy - 3 * player.sprinting
-                        player.wcx = player.wcx + 3 * player.sprinting
-                        player.wcy = player.wcy - 3 * player.sprinting
                         moved = True
+                        player.wcx += 3 * player.sprinting
+                        player.wcy -= 3 * player.sprinting
 
             if keys[pygame.K_s] and not moved:
                 if move_ticker == 0:
@@ -692,21 +704,21 @@ while running:
                         move_ticker = 10
                         world.move_camera(["down"])
                         player.hcy = player.cy + 3 * player.sprinting
-                        player.wcy = player.wcy + 3 * player.sprinting
                         moved = True
+                        player.wcy += 3 * player.sprinting
                     if keys[pygame.K_a] and not moved:
                         world.move_camera(["down", "left"])
                         player.hcx = player.cx - 3 * player.sprinting
                         player.hcy = player.cy + 3 * player.sprinting
-                        player.wcx = player.wcx - 3 * player.sprinting
-                        player.wcy = player.wcy + 3 * player.sprinting
                         moved = True
+                        player.wcx -= 3 * player.sprinting
+                        player.wcy += 3 * player.sprinting
                     if keys[pygame.K_d] and not moved:
                         world.move_camera(["down", "right"])
                         player.hcx = player.cx + 3 * player.sprinting
                         player.hcy = player.cy + 3 * player.sprinting
-                        player.wcx = player.wcx + 3 * player.sprinting
-                        player.wcy = player.wcy + 3 * player.sprinting
+                        player.wcx += 3 * player.sprinting
+                        player.wcy += 3 * player.sprinting
                         moved = True
 
             if keys[pygame.K_a] and not moved:
@@ -714,8 +726,8 @@ while running:
                     move_ticker = 10
                     world.move_camera(["left"])
                     player.hcx = player.cx - 3 * player.sprinting
-                    player.wcx = player.wcx - 3 * player.sprinting
                     moved = True
+                    player.wcx -= 3 * player.sprinting
 
 
             if keys[pygame.K_d] and not moved:
@@ -723,12 +735,14 @@ while running:
                     move_ticker = 10
                     world.move_camera(["right"])
                     player.hcx = player.cx + 3 * player.sprinting
-                    player.wcx = player.wcx + 3 * player.sprinting
                     moved = True
+                    player.wcx += 3 * player.sprinting
 
         if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
-            player.decelerate()
+            #player.decelerate()
             #print("decellerating")
+            pass
+
 
 
 
