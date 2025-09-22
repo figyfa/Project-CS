@@ -162,9 +162,10 @@ class Player2 (Player):
         self.cy = float(data[1])
 
     def rectify(self):
-        self.cx -= player.wcx
-        self.cy += player.wcy
+        #self.cx -= player.wcx
+        #self.cy += player.wcy
 
+        pass
         print(f"Rectified data {self.cx} {self.cy}")
 
 class Enemy:
