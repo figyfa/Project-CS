@@ -56,14 +56,12 @@ class BoundingBox:
         self.s.fill((255,255,255))
         self.screen.blit(self.s,(self.lx,self.ty))
 
-    def scan_for_player(self,player2):
-        print(f"Thirdcon:{self.ty < player2.hcy - 5}")
-        if self.lx < player2.hcx and player2.hcx < (self.lx + self.width) and self.ty < player2.hcy and (self.ty + self.height) > player2.hcy:
-            #print("player2 detected")
-            player2.in_camera = True
+    def scan_for_player(self,player):
+        if self.lx < player.hcx - 5 and player.hcx + 5 < (self.lx + self.width) and self.ty < player.hcy - 5 and (self.ty + self.height) > player.hcy:
+            #print("player detected")
+            player.in_camera = True
         else:
-            player2.in_camera = False
-            #print("Player2 not detected")
+            player.in_camera = False
 
 
 
@@ -521,6 +519,9 @@ while running:
     data[0] = player2.cx
     data[1] = player2.cy
 
+    if debugging:
+        camera_follow.draw()
+
     camera_follow.scan_for_player(player2)
 
     user_input = (f"{str(data[0])} {str(data[1])}")
@@ -686,8 +687,9 @@ while running:
                 camera_follow.cam_cx += 3 * player2.sprinting
 
     if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
-        player2.decelerate()
+        # player2.decelerate()
         # print("decellerating")
+        pass
 
     if debugging:
         if keys[pygame.K_UP]:

@@ -160,12 +160,12 @@ class Player2 (Player):
         data = data.split(" ")
 
         print(data)
-        self.cx = float(data[0])
-        self.cy = float(data[1])
+        self.wcx = float(data[0])
+        self.wcy = float(data[1])
 
     def rectify(self):
-        self.cx -= self.wcx - camera_follow.cam_cx
-        self.cy -= self.wcy - camera_follow.cam_cy
+        self.cx = self.wcx - camera_follow.cam_cx
+        self.cy = self.wcy - camera_follow.cam_cy
 
         print(f"Rectified data {self.cx} {self.cy}")
 
