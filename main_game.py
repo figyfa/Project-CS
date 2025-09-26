@@ -164,8 +164,8 @@ class Player2 (Player):
         self.cy = float(data[1])
 
     def rectify(self):
-        self.cx -= camera_follow.cam_cx
-        self.cy -= camera_follow.cam_cy
+        self.cx -= self.wcx - camera_follow.cam_cx
+        self.cy -= self.wcy - camera_follow.cam_cy
 
         print(f"Rectified data {self.cx} {self.cy}")
 
@@ -460,22 +460,22 @@ class GameWorld:
 
             else:
                 if "down" in direction and "left" in direction:
-                    item.cy = item.cy - 2.121 * player.sprinting
+                    item.cy = item.cy - 0.879 * player.sprinting
                     item.cx = item.cx + 2.121 * player.sprinting
 
 
                 if "up" in direction and "left" in direction:
-                    item.cy = item.cy + 2.121 * player.sprinting
+                    item.cy = item.cy + 0.879 * player.sprinting
                     item.cx = item.cx + 2.121 * player.sprinting
 
 
                 if "right" in direction and "down" in direction:
                     item.cx = item.cx - 2.121 * player.sprinting
-                    item.cy = item.cy - 2.121 * player.sprinting
+                    item.cy = item.cy - 0.879 * player.sprinting
 
                 if "right" in direction and "up" in direction:
                     item.cx = item.cx - 2.121 * player.sprinting
-                    item.cy = item.cy + 2.121 * player.sprinting
+                    item.cy = item.cy + 0.879 * player.sprinting
 
 
 
@@ -691,19 +691,19 @@ while running:
                         player.hcx = player.cx - 3 * player.sprinting
                         player.hcy = player.cy - 3 * player.sprinting
                         moved = True
-                        player.wcy -= 2.121 * player.sprinting
+                        player.wcy -= 0.879 * player.sprinting
                         player.wcx -= 2.121 * player.sprinting
                         camera_follow.cam_cx -= 2.121 * player.sprinting
-                        camera_follow.cam_cy -= 2.121 * player.sprinting
+                        camera_follow.cam_cy -= 0.879 * player.sprinting
                     if keys[pygame.K_d] and not moved:
                         world.move_camera(["up", "right"])
                         player.hcx = player.cx + 3 * player.sprinting
                         player.hcy = player.cy - 3 * player.sprinting
                         moved = True
                         player.wcx += 2.121 * player.sprinting
-                        player.wcy -= 2.121 * player.sprinting
+                        player.wcy -= 0.879 * player.sprinting
                         camera_follow.cam_cx += 2.121 * player.sprinting
-                        camera_follow.cam_cy -= 2.121 * player.sprinting
+                        camera_follow.cam_cy -= 0.879 * player.sprinting
 
             if keys[pygame.K_s] and not moved:
                 if move_ticker == 0:
@@ -720,17 +720,17 @@ while running:
                         player.hcy = player.cy + 3 * player.sprinting
                         moved = True
                         player.wcx -= 2.121 * player.sprinting
-                        player.wcy += 2.121 * player.sprinting
-                        camera_follow.cam_cy += 2.121 * player.sprinting
+                        player.wcy += 0.879 * player.sprinting
+                        camera_follow.cam_cy += 0.879 * player.sprinting
                         camera_follow.cam_cx -= 2.121 * player.sprinting
                     if keys[pygame.K_d] and not moved:
                         world.move_camera(["down", "right"])
                         player.hcx = player.cx + 3 * player.sprinting
                         player.hcy = player.cy + 3 * player.sprinting
                         player.wcx += 2.121 * player.sprinting
-                        player.wcy += 2.121 * player.sprinting
+                        player.wcy += 0.879 * player.sprinting
                         moved = True
-                        camera_follow.cam_cy += 2.121 * player.sprinting
+                        camera_follow.cam_cy += 0.879 * player.sprinting
                         camera_follow.cam_cx += 2.121 * player.sprinting
 
             if keys[pygame.K_a] and not moved:
