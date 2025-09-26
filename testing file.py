@@ -1,6 +1,6 @@
 import socket
-IP_PROXY = "10.1.58.9"
-PORT = 10000
+IP_PROXY = "172.20.10.3"
+PORT = 8000
 
 
 def main():

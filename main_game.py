@@ -48,6 +48,8 @@ class BoundingBox:
         self.height = height
         self.s = pygame.Surface((width,height))
         self.screen = screen
+        self.cam_cx = 0
+        self.cam_cy = 0
 
     def draw(self):
         self.s.set_alpha(128)
@@ -79,8 +81,8 @@ class Player:
         self.colour = (0,0,0)
         self.laser_trail = []
         self.first_run = True
-        self.wcx = 0
-        self.wcy = 0
+        self.wcx = 600
+        self.wcy = 300
 
     def decelerate(self):
         if self.vx < 0:
@@ -162,10 +164,9 @@ class Player2 (Player):
         self.cy = float(data[1])
 
     def rectify(self):
-        #self.cx -= player.wcx
-        #self.cy += player.wcy
+        self.cx -= camera_follow.cam_cx
+        self.cy -= camera_follow.cam_cy
 
-        pass
         print(f"Rectified data {self.cx} {self.cy}")
 
 class Enemy:
@@ -684,20 +685,25 @@ while running:
                         player.hcy = player.cy - 3 * player.sprinting
                         moved = True
                         player.wcy -= 3 * player.sprinting
+                        camera_follow.cam_cy -= 3 * player.sprinting
                     if keys[pygame.K_a] and not moved:
                         world.move_camera(["up", "left"])
                         player.hcx = player.cx - 3 * player.sprinting
                         player.hcy = player.cy - 3 * player.sprinting
                         moved = True
-                        player.wcy -= 3 * player.sprinting
-                        player.wcx -= 3 * player.sprinting
+                        player.wcy -= 2.121 * player.sprinting
+                        player.wcx -= 2.121 * player.sprinting
+                        camera_follow.cam_cx -= 2.121 * player.sprinting
+                        camera_follow.cam_cy -= 2.121 * player.sprinting
                     if keys[pygame.K_d] and not moved:
                         world.move_camera(["up", "right"])
                         player.hcx = player.cx + 3 * player.sprinting
                         player.hcy = player.cy - 3 * player.sprinting
                         moved = True
-                        player.wcx += 3 * player.sprinting
-                        player.wcy -= 3 * player.sprinting
+                        player.wcx += 2.121 * player.sprinting
+                        player.wcy -= 2.121 * player.sprinting
+                        camera_follow.cam_cx += 2.121 * player.sprinting
+                        camera_follow.cam_cy -= 2.121 * player.sprinting
 
             if keys[pygame.K_s] and not moved:
                 if move_ticker == 0:
@@ -707,20 +713,25 @@ while running:
                         player.hcy = player.cy + 3 * player.sprinting
                         moved = True
                         player.wcy += 3 * player.sprinting
+                        camera_follow.cam_cy += 3 * player.sprinting
                     if keys[pygame.K_a] and not moved:
                         world.move_camera(["down", "left"])
                         player.hcx = player.cx - 3 * player.sprinting
                         player.hcy = player.cy + 3 * player.sprinting
                         moved = True
-                        player.wcx -= 3 * player.sprinting
-                        player.wcy += 3 * player.sprinting
+                        player.wcx -= 2.121 * player.sprinting
+                        player.wcy += 2.121 * player.sprinting
+                        camera_follow.cam_cy += 2.121 * player.sprinting
+                        camera_follow.cam_cx -= 2.121 * player.sprinting
                     if keys[pygame.K_d] and not moved:
                         world.move_camera(["down", "right"])
                         player.hcx = player.cx + 3 * player.sprinting
                         player.hcy = player.cy + 3 * player.sprinting
-                        player.wcx += 3 * player.sprinting
-                        player.wcy += 3 * player.sprinting
+                        player.wcx += 2.121 * player.sprinting
+                        player.wcy += 2.121 * player.sprinting
                         moved = True
+                        camera_follow.cam_cy += 2.121 * player.sprinting
+                        camera_follow.cam_cx += 2.121 * player.sprinting
 
             if keys[pygame.K_a] and not moved:
                 if move_ticker == 0:
@@ -729,6 +740,7 @@ while running:
                     player.hcx = player.cx - 3 * player.sprinting
                     moved = True
                     player.wcx -= 3 * player.sprinting
+                    camera_follow.cam_cx -= 3 * player.sprinting
 
 
             if keys[pygame.K_d] and not moved:
@@ -738,6 +750,7 @@ while running:
                     player.hcx = player.cx + 3 * player.sprinting
                     moved = True
                     player.wcx += 3 * player.sprinting
+                    camera_follow.cam_cx += 3 * player.sprinting
 
         if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
             #player.decelerate()
