@@ -146,10 +146,10 @@ class Player2 (Player):
         enemy_data = ''
         for enemy in enemies:
             if enemy not in viruses:
-                enemy_data_temp = f" {enemy.cx} {enemy.cy} enemy"
+                enemy_data_temp = f" {int(enemy.cx)} {int(enemy.cy)} e"
                 enemy_data += enemy_data_temp
             else:
-                enemy_data_temp = f" {enemy.cx} {enemy.cy} virus"
+                enemy_data_temp = f" {int(enemy.cx)} {int(enemy.cy)} v"
                 enemy_data += enemy_data_temp
         data_to_proxy += enemy_data
         print(f"Received {data}")
@@ -490,7 +490,7 @@ players = [player,player2]
 world = GameWorld(player)
 world.objects.append(island)
 world.objects.append(player2)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(0)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(20)]
 active_grenades = []
 
 pygame.font.init()
@@ -498,7 +498,7 @@ my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
 
-viruses = [Virus() for j in range(1)]
+viruses = [Virus() for j in range(0)]
 main_menu = True
 for virus in viruses:
     enemies.append(virus)
@@ -544,7 +544,10 @@ while running:
         island.draw()
         player2.draw()
 
-        player2.recv_and_send_data()
+        if frames % 5 == 0:
+            player2.recv_and_send_data()
+            print("data sent")
+
         player2.rectify()
 
 

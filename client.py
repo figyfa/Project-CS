@@ -140,14 +140,19 @@ class Player2 (Player):
         super().__init__(cx,cy)
 
 
-    def recv_and_send_data(self,user_input):
+    def recv_and_send_data(self, user_input, data_processed):
         my_socket.send(user_input.encode())
+        if data_processed:
+            pass
+
+
         #print(f"Sent {user_input}")
         data = my_socket.recv(1024).decode()
         #print(f"Received {data}")
+        data_processed = True
 
         data = data.split(" ")
-        #print(data)
+        print(data)
         player.cx = float(data[0])
         player.cy = float(data[1])
 
@@ -155,12 +160,15 @@ class Player2 (Player):
 
         for i in range(2,len(data),3):
             #print(data[i+2])
-            if data[i+2] == "enemy":
+            if data[i+2] == "e":
                 enemies.append(Enemy(float(data[i]),float(data[i+1])))
-            if data[i+2] == "virus":
+            if data[i+2] == "v":
                 enemies.append(Virus(float(data[i]),float(data[i+1])))
 
-        return enemies
+        return enemies, data_processed
+
+    def extrapolate(self):
+        pass
     def rectify(self):
         player.cx -= camera_follow.cam_cx
         player.cy -= camera_follow.cam_cy
@@ -500,6 +508,7 @@ for enemy in enemies:
 bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
+data_processed = False
 
     # Use a breakpoint in the code line below to debug your script.
 my_socket = socket.socket()
@@ -527,7 +536,7 @@ while running:
     user_input = (f"{str(data[0])} {str(data[1])}")
     user_input = ''.join(user_input)
 
-    enemies = player2.recv_and_send_data(user_input)
+    enemies, data_processed = player2.recv_and_send_data(user_input,data_processed)
     player2.rectify()
 
     #print(enemies)
