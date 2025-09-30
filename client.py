@@ -464,22 +464,22 @@ class GameWorld:
 
             else:
                 if "down" in direction and "left" in direction:
-                    item.cy = item.cy - 0.879 * player2.sprinting
+                    item.cy = item.cy - 2.121 * player2.sprinting
                     item.cx = item.cx + 2.121 * player2.sprinting
 
 
                 if "up" in direction and "left" in direction:
-                    item.cy = item.cy + 0.879 * player2.sprinting
+                    item.cy = item.cy + 2.121 * player2.sprinting
                     item.cx = item.cx + 2.121 * player2.sprinting
 
 
                 if "right" in direction and "down" in direction:
                     item.cx = item.cx - 2.121 * player2.sprinting
-                    item.cy = item.cy - 0.879 * player2.sprinting
+                    item.cy = item.cy - 2.121 * player2.sprinting
 
                 if "right" in direction and "up" in direction:
                     item.cx = item.cx - 2.121 * player2.sprinting
-                    item.cy = item.cy + 0.879 * player2.sprinting
+                    item.cy = item.cy + 2.121 * player2.sprinting
 
 island = Island((0, 255, 60,50),1000,750,450)
 
@@ -536,8 +536,9 @@ while running:
     user_input = (f"{str(data[0])} {str(data[1])}")
     user_input = ''.join(user_input)
 
-    enemies, data_processed = player2.recv_and_send_data(user_input,data_processed)
-    player2.rectify()
+    if frames % 5 == 0:
+        enemies, data_processed = player2.recv_and_send_data(user_input,data_processed)
+        player2.rectify()
 
     #print(enemies)
     for enemy in enemies:
@@ -570,17 +571,17 @@ while running:
                 # print("Moving up",player2.cx,player2.cy)
                 if keys[pygame.K_a]:
                     player2.hcx -= 2.121 * player2.sprinting
-                    player2.hcy += 0.879 * player2.sprinting
+                    player2.hcy += 2.121 * player2.sprinting
                     player2.cx = player2.hcx
                     player2.wcx -= 2.121 * player2.sprinting
-                    player2.wcy += 0.879 * player2.sprinting
+                    player2.wcy += 2.121 * player2.sprinting
                     # print("Moving up and left")
                 if keys[pygame.K_d]:
                     player2.hcx += 2.121 * player2.sprinting
-                    player2.hcy += 0.879 * player2.sprinting
+                    player2.hcy += 2.121 * player2.sprinting
                     player2.cx = player2.hcx
                     player2.wcx += 2.121 * player2.sprinting
-                    player2.wcy += 0.879 * player2.sprinting
+                    player2.wcy += 2.121 * player2.sprinting
 
         if keys[pygame.K_s]:
             if move_ticker == 0:
@@ -591,17 +592,17 @@ while running:
                 # print("Moving down")
                 if keys[pygame.K_a]:
                     player2.hcx -= 2.121 * player2.sprinting
-                    player2.hcy -= 0.879 * player2.sprinting
+                    player2.hcy -= 2.121 * player2.sprinting
                     player2.cx = player2.hcx
                     player2.wcx -= 2.121 * player2.sprinting
-                    player2.wcy -= 0.879 * player2.sprinting
+                    player2.wcy -= 2.121 * player2.sprinting
                 if keys[pygame.K_d]:
                     # print("Moving down and right")
                     player2.hcx += 2.121 * player2.sprinting
-                    player2.hcy -= 0.879 * player2.sprinting
+                    player2.hcy -= 2.121 * player2.sprinting
                     player2.cx = player2.hcx
                     player2.wcx += 2.121 * player2.sprinting
-                    player2.wcy -= 0.879 * player2.sprinting
+                    player2.wcy -= 2.121 * player2.sprinting
 
         if keys[pygame.K_a]:
             if move_ticker == 0:
@@ -635,19 +636,19 @@ while running:
                     player2.hcx = player2.cx - 3 * player2.sprinting
                     player2.hcy = player2.cy - 3 * player2.sprinting
                     moved = True
-                    player2.wcy -= 0.879 * player2.sprinting
+                    player2.wcy -= 2.121 * player2.sprinting
                     player2.wcx -= 2.121 * player2.sprinting
                     camera_follow.cam_cx -= 2.121 * player2.sprinting
-                    camera_follow.cam_cy -= 0.879 * player2.sprinting
+                    camera_follow.cam_cy -= 2.121 * player2.sprinting
                 if keys[pygame.K_d] and not moved:
                     world.move_camera(["up", "right"])
                     player2.hcx = player2.cx + 3 * player2.sprinting
                     player2.hcy = player2.cy - 3 * player2.sprinting
                     moved = True
                     player2.wcx += 2.121 * player2.sprinting
-                    player2.wcy -= 0.879 * player2.sprinting
+                    player2.wcy -= 2.121 * player2.sprinting
                     camera_follow.cam_cx += 2.121 * player2.sprinting
-                    camera_follow.cam_cy -= 0.879 * player2.sprinting
+                    camera_follow.cam_cy -= 2.121 * player2.sprinting
 
         if keys[pygame.K_s] and not moved:
             if move_ticker == 0:
@@ -664,17 +665,17 @@ while running:
                     player2.hcy = player2.cy + 3 * player2.sprinting
                     moved = True
                     player2.wcx -= 2.121 * player2.sprinting
-                    player2.wcy += 0.879 * player2.sprinting
-                    camera_follow.cam_cy += 0.879 * player2.sprinting
+                    player2.wcy += 2.121 * player2.sprinting
+                    camera_follow.cam_cy += 2.121 * player2.sprinting
                     camera_follow.cam_cx -= 2.121 * player2.sprinting
                 if keys[pygame.K_d] and not moved:
                     world.move_camera(["down", "right"])
                     player2.hcx = player2.cx + 3 * player2.sprinting
                     player2.hcy = player2.cy + 3 * player2.sprinting
                     player2.wcx += 2.121 * player2.sprinting
-                    player2.wcy += 0.879 * player2.sprinting
+                    player2.wcy += 2.121 * player2.sprinting
                     moved = True
-                    camera_follow.cam_cy += 0.879 * player2.sprinting
+                    camera_follow.cam_cy += 2.121 * player2.sprinting
                     camera_follow.cam_cx += 2.121 * player2.sprinting
 
         if keys[pygame.K_a] and not moved:
