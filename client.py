@@ -147,7 +147,7 @@ class Player2 (Player):
 
 
         #print(f"Sent {user_input}")
-        data = my_socket.recv(1024).decode()
+        data = my_socket.recv(10000).decode()
         #print(f"Received {data}")
         data_processed = True
 
