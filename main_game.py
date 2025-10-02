@@ -498,7 +498,7 @@ players = [player,player2]
 world = GameWorld(player)
 world.objects.append(island)
 world.objects.append(player2)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(0)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(1)]
 active_grenades = []
 
 pygame.font.init()
@@ -603,6 +603,7 @@ while running:
 
         if not key_g_held_down and key_g_not_pressed == False:
             mouse_pos = pygame.mouse.get_pos()
+            mouse_pos = (mouse_pos[0] + camera_follow.cam_cx, mouse_pos[1] + camera_follow.cam_cy)
             print("Key g just released")
             if active_grenades:
                 active_grenades[-1].throw(player,mouse_pos)
