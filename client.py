@@ -18,10 +18,10 @@ FPS = 60
 fpsClock = pygame.time.Clock()
 
 def calc_distance(pointA, pointB):
-    return math.sqrt((pointA.cx - pointB.cx)**2 + (pointA.cy - pointB.cy)**2) - pointA.radius - pointB.radius
+    return math.sqrt((pointA.wcx - pointB.wcx)**2 + (pointA.wcy - pointB.wcy)**2) - pointA.radius - pointB.radius
 
 def calc_distance_circle_and_point(pointA, pointB):
-    return math.sqrt((pointA.cx - pointB[0])**2 + (pointA.cy - pointB[1])**2) - pointA.radius
+    return math.sqrt((pointA.wcx - pointB[0])**2 + (pointA.wcy - pointB[1])**2) - pointA.radius
 
 class Island:
     def __init__(self,colour, radius, cx, cy):
@@ -100,11 +100,12 @@ class Player:
         self.colour = (0,255 * (100 - self.health)/100,0)
     def fire_laser(self):
         mouse_pos = pygame.mouse.get_pos()
-        magnitude = math.sqrt((mouse_pos[0] - self.cx)**2 + (mouse_pos[1] - self.cy)**2)
-        self.xstep = ((mouse_pos[0] - self.cx)/magnitude) * 20
-        self.ystep = ((mouse_pos[1] - self.cy)/magnitude) * 20
-        self.current_bulletx = self.cx
-        self.current_bullety = self.cy
+        mouse_pos = (mouse_pos[0]+camera_follow.cam_cx,mouse_pos[1]+camera_follow.cam_cy)
+        magnitude = math.sqrt((mouse_pos[0] - self.wcx)**2 + (mouse_pos[1] - self.wcy)**2)
+        self.xstep = ((mouse_pos[0] - self.wcx)/magnitude) * 20
+        self.ystep = ((mouse_pos[1] - self.wcy)/magnitude) * 20
+        self.current_bulletx = self.wcx
+        self.current_bullety = self.wcy
         self.laser_trail.append((self.current_bulletx,self.current_bullety))
         if self.xstep > 0:
             while self.current_bulletx < mouse_pos[0]:
@@ -121,7 +122,7 @@ class Player:
             for circle in self.laser_trail:
                 pygame.draw.circle(screen, (123,123,123), (circle[0],circle[1]),5)
         else:
-            pygame.draw.line(screen, (11, 3, 252), (self.cx,self.cy),(self.laser_trail[-1][0],self.laser_trail[-1][1]),10)
+            pygame.draw.line(screen, (11, 3, 252), (self.cx,self.cy),(self.laser_trail[-1][0]+camera_follow.cam_cx,self.laser_trail[-1][1]+camera_follow.cam_cy),10)
 
 
 

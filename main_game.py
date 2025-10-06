@@ -18,10 +18,10 @@ FPS = 60
 fpsClock = pygame.time.Clock()
 
 def calc_distance(pointA, pointB):
-    return math.sqrt((pointA.cx - pointB.cx)**2 + (pointA.cy - pointB.cy)**2) - pointA.radius - pointB.radius
+    return math.sqrt((pointA.wcx - pointB.wcx)**2 + (pointA.wcy - pointB.wcy)**2) - pointA.radius - pointB.radius
 
 def calc_distance_circle_and_point(pointA, pointB):
-    return math.sqrt((pointA.cx - pointB[0])**2 + (pointA.cy - pointB[1])**2) - pointA.radius
+    return math.sqrt((pointA.wcx - pointB[0])**2 + (pointA.wcy - pointB[1])**2) - pointA.radius
 
 class Island:
     def __init__(self,colour, radius, cx, cy):
@@ -102,11 +102,12 @@ class Player:
         self.colour = (0,255 * (100 - self.health)/100,0)
     def fire_laser(self):
         mouse_pos = pygame.mouse.get_pos()
-        magnitude = math.sqrt((mouse_pos[0] - self.cx)**2 + (mouse_pos[1] - self.cy)**2)
-        self.xstep = ((mouse_pos[0] - self.cx)/magnitude) * 20
-        self.ystep = ((mouse_pos[1] - self.cy)/magnitude) * 20
-        self.current_bulletx = self.cx
-        self.current_bullety = self.cy
+        mouse_pos = (mouse_pos[0] + camera_follow.cam_cx, mouse_pos[1] + camera_follow.cam_cy)
+        magnitude = math.sqrt((mouse_pos[0] - self.wcx)**2 + (mouse_pos[1] - self.wcy)**2)
+        self.xstep = ((mouse_pos[0] - self.wcx)/magnitude) * 20
+        self.ystep = ((mouse_pos[1] - self.wcy)/magnitude) * 20
+        self.current_bulletx = self.wcx
+        self.current_bullety = self.wcy
         self.laser_trail.append((self.current_bulletx,self.current_bullety))
         if self.xstep > 0:
             while self.current_bulletx < mouse_pos[0]:
@@ -121,7 +122,7 @@ class Player:
 
         if debugging:
             for circle in self.laser_trail:
-                pygame.draw.circle(screen, (123,123,123), (circle[0],circle[1]),5)
+                pygame.draw.circle(screen, (123,123,123), (circle[0]-camera_follow.cam_cx,circle[1]-camera_follow.cam_cy),5)
         else:
             pygame.draw.line(screen, (11, 3, 252), (self.cx,self.cy),(self.laser_trail[-1][0],self.laser_trail[-1][1]),10)
 
@@ -211,7 +212,7 @@ class Enemy:
         if 100 >= (self.health) >= 1:
             self.colour =(255,255 * (self.health / 100),255)
             screen.blit(self.image_list[self.health//11], (self.cx-32,self.cy-32))
-            print(self.image_list)
+            #print(self.image_list)
         if self.health <= 0:
             self.can_move = 0
             if self in enemies:
@@ -350,17 +351,17 @@ class Grenade_v2:
 
         print("throwing")
         pygame.draw.circle(screen, self.colour, (self.cx,self.cy),self.actual_radius)
-        print(target)
+        #print(target)
         print(self.pos)
         self.detonation_time -= (1/FPS)
         if self.detonation_time <= 0:
-            print("Exploding while travelling")
+            #print("Exploding while travelling")
             self.thrown = False
             self.explode()
         for i in range(len(enemies)):
             if calc_distance_circle_and_point(enemies[i],self.pos) < 5 and player.health > 0:
                 self.thrown = False
-                print("Exploding on collision")
+                #print("Exploding on collision")
                 self.explode()
 
         self.wcx += self.dx
@@ -498,7 +499,7 @@ players = [player,player2]
 world = GameWorld(player)
 world.objects.append(island)
 world.objects.append(player2)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(1)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(3)]
 active_grenades = []
 
 pygame.font.init()
@@ -506,7 +507,7 @@ my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
 
-viruses = [Virus() for j in range(0)]
+viruses = [Virus() for j in range(1)]
 main_menu = True
 for virus in viruses:
     enemies.append(virus)
@@ -638,20 +639,21 @@ while running:
                     player.hcy -= 3 * player.sprinting
                     player.cy = player.hcy
                     player.wcy -= 3 * player.sprinting
-                    #print("Moving up",player.cx,player.cy)
+                    print("Moving up",player.cx,player.cy)
                     if keys[pygame.K_a]:
                         player.hcx -= 2.121 * player.sprinting
-                        player.hcy += 2.121 * player.sprinting
+                        player.hcy += 0.879 * player.sprinting
                         player.cx = player.hcx
                         player.wcx -= 2.121 * player.sprinting
-                        player.wcy += 2.121 * player.sprinting
-                        #print("Moving up and left")
+                        player.wcy += 0.879 * player.sprinting
+                        print("Moving up and left")
                     if keys[pygame.K_d]:
                         player.hcx += 2.121 * player.sprinting
-                        player.hcy += 2.121 * player.sprinting
+                        player.hcy += 0.879 * player.sprinting
                         player.cx = player.hcx
                         player.wcx += 2.121 * player.sprinting
-                        player.wcy += 2.121 * player.sprinting
+                        player.wcy += 0.879 * player.sprinting
+                        print("Moving up and right")
 
             if keys[pygame.K_s]:
                 if move_ticker == 0:
@@ -659,20 +661,21 @@ while running:
                     player.hcy += 3 * player.sprinting
                     player.cy = player.hcy
                     player.wcy += 3 * player.sprinting
-                    #print("Moving down")
+                    print("Moving down")
                     if keys[pygame.K_a]:
                         player.hcx -= 2.121 * player.sprinting
-                        player.hcy -= 2.121 * player.sprinting
+                        player.hcy -= 0.879 * player.sprinting
                         player.cx = player.hcx
                         player.wcx -= 2.121 * player.sprinting
-                        player.wcy -= 2.121 * player.sprinting
+                        player.wcy -= 0.879 * player.sprinting
+                        print("Moving down and left")
                     if keys[pygame.K_d]:
-                        #print("Moving down and right")
+                        print("Moving down and right")
                         player.hcx += 2.121 * player.sprinting
-                        player.hcy -= 2.121 * player.sprinting
+                        player.hcy -= 0.879 * player.sprinting
                         player.cx = player.hcx
                         player.wcx += 2.121 * player.sprinting
-                        player.wcy -= 2.121 * player.sprinting
+                        player.wcy -= 0.879 * player.sprinting
 
             if keys[pygame.K_a]:
                 if move_ticker == 0:
@@ -680,7 +683,7 @@ while running:
                     player.hcx -= 3 * player.sprinting
                     player.cx = player.hcx
                     player.wcx -= 3 * player.sprinting
-                    #print("moving left")
+                    print("moving left")
 
             if keys[pygame.K_d]:
                 if move_ticker == 0:
@@ -688,7 +691,7 @@ while running:
                     player.hcx += 3 * player.sprinting
                     player.cx = player.hcx
                     player.wcx += 3 * player.sprinting
-                    #print("moving right")
+                    print("moving right")
 
         else:
             if keys[pygame.K_w]:
@@ -697,7 +700,7 @@ while running:
                     player.hcy -= 3 * player.sprinting
                     camera_follow.cam_cy -= 3 * player.sprinting
                     player.wcy -= 3 * player.sprinting
-                    #print("Moving up",player.cx,player.cy)
+                    print("Moving up",player.cx,player.cy)
                     if keys[pygame.K_a]:
                         player.hcx -= 2.121 * player.sprinting
                         player.hcy += 0.879 * player.sprinting
@@ -705,7 +708,7 @@ while running:
                         camera_follow.cam_cy += 0.879 * player.sprinting
                         player.wcx -= 2.121 * player.sprinting
                         player.wcy += 0.879 * player.sprinting
-                        #print("Moving up and left")
+                        print("Moving up and left")
                     if keys[pygame.K_d]:
                         player.hcx += 2.121 * player.sprinting
                         player.hcy += 0.879 * player.sprinting
@@ -713,6 +716,7 @@ while running:
                         camera_follow.cam_cy += 0.879 * player.sprinting
                         player.wcx += 2.121 * player.sprinting
                         player.wcy += 0.879 * player.sprinting
+                        print("Moving up and right")
 
             if keys[pygame.K_s]:
                 if move_ticker == 0:
@@ -720,7 +724,7 @@ while running:
                     player.hcy += 3 * player.sprinting
                     camera_follow.cam_cy += 3 * player.sprinting
                     player.wcy += 3 * player.sprinting
-                    #print("Moving down")
+                    print("Moving down")
                     if keys[pygame.K_a]:
                         player.hcx -= 2.121 * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
@@ -728,8 +732,9 @@ while running:
                         camera_follow.cam_cy -= 0.879 * player.sprinting
                         player.wcx -= 2.121 * player.sprinting
                         player.wcy -= 0.879 * player.sprinting
+                        print("Moving left and down")
                     if keys[pygame.K_d]:
-                        #print("Moving down and right")
+                        print("Moving down and right")
                         player.hcx += 2.121 * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
                         camera_follow.cam_cx += 2.121 * player.sprinting
@@ -743,7 +748,7 @@ while running:
                     player.hcx -= 3 * player.sprinting
                     camera_follow.cam_cx -= 3 * player.sprinting
                     player.wcx -= 3 * player.sprinting
-                    #print("moving left")
+                    print("moving left")
 
             if keys[pygame.K_d]:
                 if move_ticker == 0:
@@ -751,7 +756,7 @@ while running:
                     player.hcx += 3 * player.sprinting
                     camera_follow.cam_cx += 3 * player.sprinting
                     player.wcx += 3 * player.sprinting
-                    #print("moving right")
+                    print("moving right")
 
 
         for item in world.objects:
