@@ -149,7 +149,7 @@ class Player2 (Player):
 
         #print(f"Sent {user_input}")
         data = my_socket.recv(10000).decode()
-        #print(f"Received {data}")
+        print(f"Received {data}")
         data_processed = True
 
         data = data.split(" ")
@@ -174,7 +174,7 @@ class Player2 (Player):
         player.cx -= camera_follow.cam_cx
         player.cy -= camera_follow.cam_cy
 
-        #print(f"Rectified data {self.cx} {self.cy}")
+        print(f"Rectified data {player.cx} {player.cy}")
 
 class Enemy:
     def __init__(self,cx,cy):
