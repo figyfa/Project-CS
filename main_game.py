@@ -21,7 +21,7 @@ def calc_distance(pointA, pointB):
     return math.sqrt((pointA.wcx - pointB.wcx)**2 + (pointA.wcy - pointB.wcy)**2) - pointA.radius - pointB.radius
 
 def calc_distance_circle_and_point(pointA, pointB):
-    return math.sqrt((pointA.wcx - pointB[0])**2 + (pointA.wcy - pointB[1])**2) - pointA.radius
+    return math.sqrt((pointA.wcx - pointB[0]-camera_follow.cam_cx)**2 + (pointA.wcy - pointB[1] - camera_follow.cam_cy)**2) - pointA.radius
 
 class Island:
     def __init__(self,colour, radius, cx, cy):
@@ -131,7 +131,7 @@ class Player:
     def check_laser_hit(self,enemies):
         for enemy in enemies:
             for circle in self.laser_trail:
-                print(calc_distance_circle_and_point(enemy,circle))
+                circle = (circle[0]-camera_follow.cam_cx,circle[1]-camera_follow.cam_cy)
                 if calc_distance_circle_and_point(enemy,circle) < 0:
                     enemy.health -= 5
         self.laser_trail = []
@@ -359,6 +359,7 @@ class Grenade_v2:
             self.thrown = False
             self.explode()
         for i in range(len(enemies)):
+            self.pos = (self.pos[0] - camera_follow.cam_cx, self.pos[1] - camera_follow.cam_cy)
             if calc_distance_circle_and_point(enemies[i],self.pos) < 5 and player.health > 0:
                 self.thrown = False
                 #print("Exploding on collision")
