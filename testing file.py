@@ -767,10 +767,21 @@ while running:
                     player2.wcx += 3 * player2.sprinting
                     #print("moving right")
 
+        for enemy in enemies:
+            world.objects.append(enemy)
+        for virus in viruses:
+            world.objects.append(virus)
+        for grenade in active_grenades:
+            world.objects.append(grenade)
+
+        world.objects.append(island)
+
 
         for item in world.objects:
             item.cx = item.wcx - camera_follow.cam_cx
             item.cy = item.wcy - camera_follow.cam_cy
+            if type(item) != Player:
+                world.objects.remove(item)
 
         if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
             #player2.decelerate()
