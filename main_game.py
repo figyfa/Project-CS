@@ -97,7 +97,7 @@ class Player:
         elif self.vy < 0:
             self.vy += 0.1
     def draw(self):
-        pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
+        pygame.draw.circle(screen, self.colour, (self.wcx-camera_follow.cam_cx, self.wcy-camera_follow.cam_cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
         self.colour = (0,255 * (100 - self.health)/100,0)
@@ -148,7 +148,7 @@ class Player2 (Player):
         data = proxy_socket.recv(10000).decode()
         data_to_proxy = f"{player.wcx} {player.wcy}"
         enemy_data = ''
-        #print(f"world x:{player.wcx},world y: {player.wcy}")
+        print(f"world x:{player.wcx},world y: {player.wcy}")
         for enemy in enemies:
             if enemy not in viruses:
                 enemy_data_temp = f" {int(enemy.wcx)} {int(enemy.wcy)} e"
@@ -172,6 +172,7 @@ class Player2 (Player):
         self.cx = self.wcx - camera_follow.cam_cx
         self.cy = self.wcy - camera_follow.cam_cy
 
+        print(f"Original data: {self.wcx},{self.wcy}")
         print(f"Rectified data {self.cx} {self.cy}")
 
 class Enemy:
@@ -766,6 +767,10 @@ while running:
         for item in world.objects:
             item.cx = item.wcx - camera_follow.cam_cx
             item.cy = item.wcy - camera_follow.cam_cy
+
+        if frames % 20 == 0:
+            player.hcx = player.wcx - camera_follow.cam_cx
+            player.hcy = player.wcy - camera_follow.cam_cy
 
         if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
             #player.decelerate()

@@ -96,7 +96,7 @@ class Player:
         elif self.vy < 0:
             self.vy += 0.1
     def draw(self):
-        pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
+        pygame.draw.circle(screen, self.colour, (self.wcx-camera_follow.cam_cx, self.wcy-camera_follow.cam_cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
         self.colour = (0,255 * (100 - self.health)/100,0)
@@ -146,6 +146,7 @@ class Player2 (Player):
     def recv_and_send_data(self,user_input):
         my_socket.send(user_input.encode())
 
+        print(f"World coordinate: {self.wcx},{self.wcy}")
         # print(f"Sent {user_input}")
         data = my_socket.recv(10000).decode()
         print(f"Received {data}")
@@ -783,10 +784,13 @@ while running:
             if type(item) != Player:
                 world.objects.remove(item)
 
+        if frames % 20 == 0:
+            player2.hcx = player2.wcx - camera_follow.cam_cx
+            player2.hcy = player2.wcy - camera_follow.cam_cy
+
         if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
-            #player2.decelerate()
-            #print("decellerating")
-            pass
+            player2.hcx = player2.wcx - camera_follow.cam_cx
+            player2.hcy = player2.wcy - camera_follow.cam_cy
 
 
 
