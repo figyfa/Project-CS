@@ -566,7 +566,7 @@ while running:
         user_input = (f"{str(data[0])} {str(data[1])}")
         user_input = ''.join(user_input)
 
-        if frames % 5 == 0:
+        if frames % 1 == 0:
             enemies = player2.recv_and_send_data(user_input)
             player2.rectify()
 

@@ -561,7 +561,7 @@ while running:
         island.draw()
         player2.draw()
 
-        if frames % 5 == 0:
+        if frames % 1 == 0:
             player2.recv_and_send_data()
             #print("data sent")
 
