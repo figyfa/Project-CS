@@ -169,7 +169,7 @@ class Player2 (Player):
 
         data = data.split(" ")
 
-        #print(data)
+        print(data)
         self.wcx = float(data[0])
         self.wcy = float(data[1])
 
@@ -181,7 +181,8 @@ class Player2 (Player):
         print(f"Rectified data {self.cx} {self.cy}")
 
 class Enemy:
-    def __init__(self,cx,cy):
+    def __init__(self,cx,cy,id):
+        self.id = id
         self.cx = cx
         self.cy = cy
         self.radius = 25
@@ -283,11 +284,14 @@ class Virus(Enemy):
             if self in enemies:
                 enemies.remove(self)
 
-    def clone_if_can(self,enemies):
+    def clone_if_can(self,enemies,enemy_id):
         if self.clone_cooldown <= 0:
             self.clone_cooldown = 5
-            enemies.insert(0,Enemy(self.wcx,self.wcy))
+            enemies.insert(0,Enemy(self.wcx,self.wcy,enemy_id))
+            enemy_id += 1
             world.objects.append(enemies[0])
+
+        return enemy_id
 
     def decrement_cooldown(self):
         self.clone_cooldown -= (1/FPS)
@@ -501,6 +505,8 @@ class GameWorld:
 
 island = Island((0, 255, 60,50),1000,750,450)
 
+enemy_id = 0
+
 camera_follow = BoundingBox()
 key_g_not_pressed = True
 player = Player(600,300)
@@ -509,8 +515,10 @@ players = [player,player2]
 world = GameWorld(player)
 world.objects.append(island)
 world.objects.append(player2)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(0)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450),enemy_id) for i in range(0)]
 active_grenades = []
+
+enemy_id += 1
 
 pygame.font.init()
 my_font = pygame.font.SysFont('Comic Sans MS', 30)
@@ -810,7 +818,7 @@ while running:
 
         for virus in viruses:
             if virus.health > 0:
-                virus.clone_if_can(enemies)
+                enemy_id = virus.clone_if_can(enemies,enemy_id)
                 virus.decrement_cooldown()
             virus.evaluate_health()
             virus.clean_up()

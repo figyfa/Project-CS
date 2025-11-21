@@ -137,7 +137,8 @@ class Player:
             for circle in self.laser_trail:
                 circle = (circle[0]-camera_follow.cam_cx,circle[1]-camera_follow.cam_cy)
                 if calc_distance_circle_and_point(enemy,circle) < 0:
-                    enemy.health -= 5
+                    damage_instance[enemy] -= 5
+
         self.laser_trail = []
 
 
@@ -525,6 +526,7 @@ bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
 
+damage_instance = {}
 
 data = [player2.wcx,player2.wcy]
 
@@ -571,12 +573,16 @@ while running:
         user_input = ''.join(user_input)
 
         if frames % 1 == 0:
-            enemies = player2.recv_and_send_data(user_input)
+            enemies = player2.recv_and_send_data(user_input,damage_instance)
             player2.rectify()
+            damage_instance = {}
 
         player2.rectify()
 
         print(enemies)
+
+        for enemy in enemies:
+            damage_instance.update({enemy:0})
 
         if debugging:
             camera_follow.draw()
