@@ -99,7 +99,11 @@ class Player:
         pygame.draw.circle(screen, self.colour, (self.wcx-camera_follow.cam_cx, self.wcy-camera_follow.cam_cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
-        self.colour = (0,255 * (100 - self.health)/100,0)
+        if self.health > 0:
+            self.colour = (0,255 * (100 - self.health)/100,0)
+        else:
+            print("Game over")
+            main_menu = True
     def fire_laser(self):
         mouse_pos = pygame.mouse.get_pos()
         mouse_pos = (mouse_pos[0] + camera_follow.cam_cx, mouse_pos[1] + camera_follow.cam_cy)
@@ -143,7 +147,7 @@ class Player2 (Player):
         super().__init__(cx,cy)
 
 
-    def recv_and_send_data(self,user_input):
+    def recv_and_send_data(self,user_input,damage_to_target: dict):
         my_socket.send(user_input.encode())
 
         print(f"World coordinate: {self.wcx},{self.wcy}")
@@ -154,16 +158,16 @@ class Player2 (Player):
 
         data = data.split(" ")
         print(data)
-        player.wcx = float(data[0])
-        player.wcy = float(data[1])
+        player.wcx = int(float(data[0]))
+        player.wcy = int(float(data[1]))
 
         enemies = []
 
         for i in range(2, len(data), 3):
             # print(data[i+2])
-            if data[i + 2] == "e":
+            if data[i + 2][0] == "e":
                 enemies.append(Enemy(float(data[i]), float(data[i + 1])))
-            if data[i + 2] == "v":
+            if data[i + 2][0] == "v":
                 enemies.append(Virus(float(data[i]), float(data[i + 1])))
 
         return enemies
@@ -172,7 +176,7 @@ class Player2 (Player):
         player.cx = player.wcx - camera_follow.cam_cx
         player.cy = player.wcy - camera_follow.cam_cy
 
-        print(f"Rectified data {player.cx} {player.cy}")
+        #print(f"Rectified data {player.cx} {player.cy}")
 
 class Enemy:
     def __init__(self,cx,cy):
@@ -325,10 +329,10 @@ class Grenade_v2:
         self.target = (0,0)
 
     def cook(self):
-        self.cx = player.cx
-        self.cy = player.cy
-        self.wcx = player.wcx
-        self.wcy = player.wcy
+        self.cx = player2.cx
+        self.cy = player2.cy
+        self.wcx = player2.wcx
+        self.wcy = player2.wcy
         print("cooking")
         self.detonation_time -= (1/FPS)
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.actual_radius)
@@ -572,6 +576,7 @@ while running:
 
         player2.rectify()
 
+        print(enemies)
 
         if debugging:
             camera_follow.draw()

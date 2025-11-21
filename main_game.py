@@ -100,7 +100,12 @@ class Player:
         pygame.draw.circle(screen, self.colour, (self.wcx-camera_follow.cam_cx, self.wcy-camera_follow.cam_cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
-        self.colour = (0,255 * (100 - self.health)/100,0)
+        if self.health > 0:
+            self.colour = (0,255 * (100 - self.health)/100,0)
+            return False
+        else:
+            print("Game over")
+            return True
     def fire_laser(self):
         mouse_pos = pygame.mouse.get_pos()
         mouse_pos = (mouse_pos[0] + camera_follow.cam_cx, mouse_pos[1] + camera_follow.cam_cy)
@@ -146,7 +151,7 @@ class Player2 (Player):
 
     def recv_and_send_data(self):
         data = proxy_socket.recv(10000).decode()
-        data_to_proxy = f"{player.wcx} {player.wcy}"
+        data_to_proxy = f"{int(player.wcx)} {int(player.wcy)}"
         enemy_data = ''
         print(f"world x:{player.wcx},world y: {player.wcy}")
         for enemy in enemies:
@@ -504,7 +509,7 @@ players = [player,player2]
 world = GameWorld(player)
 world.objects.append(island)
 world.objects.append(player2)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(1)]
+enemies = [Enemy(random.randint(0,750),random.randint(0,450)) for i in range(0)]
 active_grenades = []
 
 pygame.font.init()
@@ -512,7 +517,7 @@ my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
 
-viruses = [Virus() for j in range(0)]
+viruses = [Virus() for j in range(6)]
 main_menu = True
 for virus in viruses:
     enemies.append(virus)
@@ -795,7 +800,7 @@ while running:
             pygame.draw.circle(screen,(255,50,255),(player.hcx,player.hcy),10)
 
         bullet_system.clean_shot()
-        player.update_health()
+        main_menu = player.update_health()
 
         for enemy in enemies:
             enemy.evaluate_health()
