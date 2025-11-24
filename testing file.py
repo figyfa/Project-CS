@@ -149,15 +149,16 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self,user_input,damage_to_target: dict):
-        my_socket.send(user_input.encode())
+        my_socket.sendto(user_input.encode(),(IP_PROXY,PORT))
 
         print(f"World coordinate: {self.wcx},{self.wcy}")
         # print(f"Sent {user_input}")
-        data = my_socket.recv(10000).decode()
+        data,addr = my_socket.recvfrom(10000)
+        data = data.decode()
         print(f"Received {data}")
         data_processed = True
 
-        data = data.split(" ")
+        data = str(data).split(" ")
         print(data)
         player.wcx = int(float(data[0]))
         player.wcy = int(float(data[1]))
@@ -544,8 +545,8 @@ while running:
                 running = False
 
         try:
-            my_socket = socket.socket()
-            my_socket.connect((IP_PROXY, PORT))
+            my_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+            my_socket.bind((IP_PROXY,PORT))
             main_menu = False
         except:
             pass

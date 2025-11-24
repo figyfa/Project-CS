@@ -150,7 +150,7 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self):
-        data = proxy_socket.recv(10000).decode()
+        data,addr = server_socket.recvfrom(10000)
         data_to_proxy = f"{int(player.wcx)} {int(player.wcy)}"
         enemy_data = ''
         print(f"world x:{player.wcx},world y: {player.wcy}")
@@ -163,11 +163,11 @@ class Player2 (Player):
                 enemy_data += enemy_data_temp
         data_to_proxy += enemy_data
         #print(f"Received {data}")
-        proxy_socket.send(data_to_proxy.encode())
+        server_socket.sendto(data_to_proxy.encode(),(IP,PORT))
         #print(data)
         #print(f"Sent {data_to_proxy}")
 
-        data = data.split(" ")
+        data = str(data).split(" ")
 
         print(data)
         self.wcx = float(data[0])
@@ -264,8 +264,8 @@ class Enemy:
 
 
 class Virus(Enemy):
-    def __init__(self):
-        super().__init__(random.randint(0,500),random.randint(0,500))
+    def __init__(self,enemy_id):
+        super().__init__(random.randint(0,500),random.randint(0,500),enemy_id)
         self.clone_cooldown = 0
         self.colour = (255,0,0)
         self.deciding_where = False
@@ -515,17 +515,21 @@ players = [player,player2]
 world = GameWorld(player)
 world.objects.append(island)
 world.objects.append(player2)
-enemies = [Enemy(random.randint(0,750),random.randint(0,450),enemy_id) for i in range(0)]
+enemies = []
+for i in range(10):
+    enemies.append(Enemy(random.randint(0,750),random.randint(0,450),enemy_id))
+    enemy_id += 1
 active_grenades = []
 
-enemy_id += 1
 
 pygame.font.init()
 my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
-
-viruses = [Virus() for j in range(6)]
+viruses = []
+for i in range(5):
+    viruses.append(Virus(enemy_id))
+    enemy_id += 1
 main_menu = True
 for virus in viruses:
     enemies.append(virus)
@@ -535,14 +539,14 @@ bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
 
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_socket.bind((IP, PORT))
-server_socket.listen()
+#server_socket.listen()
 print("server on")
-(proxy_socket, proxy_address) = server_socket.accept()
+#(proxy_socket, proxy_address) = server_socket.accept()
 print("client on")
 
-
+#server_socket.setblocking(False)
 while running:
 
     if main_menu:
