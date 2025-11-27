@@ -1,31 +1,37 @@
 import socket
 
+localIP = "127.0.0.1"
+localPort = 20001
+bufferSize = 1024
 
-def server_program():
-    # get the hostname
-    host = socket.gethostname()
-    port = 5000  # initiate port no above 1024
+UDPServerSocket = socket.socket(family = socket.AF_INET, type = socket.SOCK_DGRAM)
+UDPServerSocket.bind((localIP, localPort))
+print("UDP server up and listening")
 
-    server_socket = socket.socket()  # get instance
-    # look closely. The bind() function takes tuple as argument
-    server_socket.bind((host, port))  # bind host address and port together
+# this might be database or a file
+di ={'17BIT0382':'vivek', '17BEC0647':'shikhar', '17BEC0150':'tanveer',
+'17BCE2119':'sahil', '17BIT0123':'sidhant'}
 
-    # configure how many client the server can listen simultaneously
-    server_socket.listen(2)
-    conn, address = server_socket.accept()  # accept new connection
-    print("Connection from: " + str(address))
-    while True:
-        # receive data stream. it won't accept data packet greater than 1024 bytes
-        data = conn.recv(1024).decode()
-        if not data:
-            # if data is not received break
-            break
-        print("from connected user: " + str(data))
-        data = input(' -> ')
-        conn.send(data.encode())  # send data to the client
+while(True):
+   # receiving name from client
+   name, addr1 = UDPServerSocket.recvfrom(bufferSize)
 
-    conn.close()  # close the connection
+   # receiving pwd from client
+   pwd, addr1 = UDPServerSocket.recvfrom(bufferSize)
 
-
-if __name__ == '__main__':
-    server_program()
+   name = name.decode()
+   pwd = pwd.decode()
+   msg =''
+   if name not in di:
+       msg ='name does not exists'
+       flag = 0
+   for i in di:
+      if i == name:
+          if di[i]== pwd:
+              msg ="pwd match"
+              flag = 1
+          else:
+              msg ="pwd wrong"
+      bytesToSend = str.encode(msg)
+      # sending encoded status of name and pwd
+      UDPServerSocket.sendto(bytesToSend, addr1)

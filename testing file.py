@@ -149,11 +149,13 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self,user_input,damage_to_target: dict):
+
         my_socket.sendto(user_input.encode(),(IP_PROXY,PORT))
 
         print(f"World coordinate: {self.wcx},{self.wcy}")
         # print(f"Sent {user_input}")
-        data,addr = my_socket.recvfrom(10000)
+        data, addr = my_socket.recvfrom(1024)
+
         data = data.decode()
         print(f"Received {data}")
         data_processed = True
@@ -518,7 +520,10 @@ my_font = pygame.font.SysFont('Comic Sans MS', 30)
 text_surface = my_font.render('Waiting for host', False, (0, 0, 0))
 
 viruses = []
-main_menu = True
+
+my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+main_menu = False
 for virus in viruses:
     enemies.append(virus)
 for enemy in enemies:
@@ -534,6 +539,7 @@ data = [player2.wcx,player2.wcy]
 while running:
 
     if main_menu:
+        main_menu = False
         menu_screen = pygame.Surface((1500,900))
         menu_screen.fill((255,255,45))
         screen.blit(menu_screen,(0,0))
@@ -543,6 +549,8 @@ while running:
 
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                main_menu = False
 
         try:
             my_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)

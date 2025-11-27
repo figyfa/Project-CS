@@ -150,7 +150,7 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self):
-        data,addr = server_socket.recvfrom(10000)
+        data, addr = server_socket.recvfrom(1024)
         data_to_proxy = f"{int(player.wcx)} {int(player.wcy)}"
         enemy_data = ''
         print(f"world x:{player.wcx},world y: {player.wcy}")
@@ -163,15 +163,15 @@ class Player2 (Player):
                 enemy_data += enemy_data_temp
         data_to_proxy += enemy_data
         #print(f"Received {data}")
-        server_socket.sendto(data_to_proxy.encode(),(IP,PORT))
+        server_socket.sendto(data_to_proxy.encode(),addr)
         #print(data)
         #print(f"Sent {data_to_proxy}")
 
         data = str(data).split(" ")
 
         print(data)
-        self.wcx = float(data[0])
-        self.wcy = float(data[1])
+        self.wcx = float(''.join([char for char in data[0] if char.isdigit()]))
+        self.wcy = float(''.join([char for char in data[1] if char.isdigit()]))
 
     def rectify(self):
         self.cx = self.wcx - camera_follow.cam_cx
@@ -563,7 +563,6 @@ while running:
                 main_menu = False
         pygame.display.flip()
     else:
-
         #print(camera_follow.cam_cx)
         #print(camera_follow.cam_cy)
 

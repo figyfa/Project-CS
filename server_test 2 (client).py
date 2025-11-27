@@ -1,25 +1,23 @@
 import socket
 
+# user input
+name = input('enter your username : ')
+bytesToSend1 = str.encode(name)
+password = input('enter your password : ')
+bytesToSend2 = str.encode(password)
 
-def client_program():
-    host = socket.gethostname()  # as both code is running on same pc
-    port = 5000  # socket server port number
+serverAddrPort = ("127.0.0.1", 20001)
+bufferSize = 1024
 
-    client_socket = socket.socket()  # instantiate
-    client_socket.connect((host, port))  # connect to the server
+# connecting to hosts
+UDPClientSocket = socket.socket(family = socket.AF_INET, type = socket.SOCK_DGRAM)
 
-    message = input(" -> ")  # take input
+# sending username by encoding it
+UDPClientSocket.sendto(bytesToSend1, serverAddrPort)
+# sending password by encoding it
+UDPClientSocket.sendto(bytesToSend2, serverAddrPort)
 
-    while message.lower().strip() != 'bye':
-        client_socket.send(message.encode())  # send message
-        data = client_socket.recv(1024).decode()  # receive response
-
-        print('Received from server: ' + data)  # show in terminal
-
-        message = input(" -> ")  # again take input
-
-    client_socket.close()  # close the connection
-
-
-if __name__ == '__main__':
-    client_program()
+# receiving status from server
+msgFromServer = UDPClientSocket.recvfrom(bufferSize)
+msg = "Message from Server {}".format(msgFromServer[0].decode())
+print(msg)
