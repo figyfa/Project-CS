@@ -150,6 +150,8 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self):
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_socket.bind((IP,PORT))
         data, addr = server_socket.recvfrom(1024)
         data_to_proxy = f"{int(player.wcx)} {int(player.wcy)}"
         enemy_data = ''
@@ -539,8 +541,6 @@ bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
 
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_socket.bind((IP, PORT))
 #server_socket.listen()
 print("server on")
 #(proxy_socket, proxy_address) = server_socket.accept()
@@ -550,6 +550,7 @@ print("client on")
 while running:
 
     if main_menu:
+        print("I suck")
         menu_screen = pygame.Surface((1500,900))
         menu_screen.fill((255,255,45))
         screen.blit(menu_screen,(0,0))
@@ -576,7 +577,7 @@ while running:
         screen.fill((107, 191, 255))
         island.draw()
         player2.draw()
-
+        print("I GOT HERE GGS")
         if frames % 1 == 0:
             player2.recv_and_send_data()
             #print("data sent")

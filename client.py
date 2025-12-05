@@ -142,13 +142,14 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self, user_input, data_processed):
-        my_socket.send(user_input.encode())
+        my_socket.sendto(user_input.encode(),(IP_PROXY,PORT))
         if data_processed:
             pass
 
 
         #print(f"Sent {user_input}")
-        data = my_socket.recv(10000).decode()
+        data,addr = my_socket.recvfrom(10000)
+        data = data.decode()
         print(f"Received {data}")
         data_processed = True
 
@@ -158,13 +159,23 @@ class Player2 (Player):
         player.cy = float(data[1])
 
         enemies = []
+        i = 2
 
-        for i in range(2,len(data),3):
+        while i +2 < len(data):
+            try:
+                x = float(data[i])
+                y = float(data[i+1])
+                t = float(data[i+2])
+            except Exception as e:
+                print(e)
+                break
             #print(data[i+2])
-            if data[i+2] == "e":
+            if t == "e":
                 enemies.append(Enemy(float(data[i]),float(data[i+1])))
-            if data[i+2] == "v":
+            elif t == "v":
                 enemies.append(Virus(float(data[i]),float(data[i+1])))
+
+            i += 3
 
         return enemies, data_processed
 
@@ -511,10 +522,9 @@ frames = 0
 key_g_held_down = False
 data_processed = False
 
-    # Use a breakpoint in the code line below to debug your script.
-my_socket = socket.socket()
-my_socket.connect((IP_PROXY, PORT))
 data = [0,0]
+
+my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 while running:
     frames = frames + 1
