@@ -578,7 +578,7 @@ while running:
         data[0] = player2.wcx
         data[1] = player2.wcy
 
-        user_input = (f"{str(data[0])} {str(data[1])}")
+        user_input = (f"{str(int(data[0]))} {str(int(data[1]))}")
         user_input = ''.join(user_input)
 
         if frames % 1 == 0:

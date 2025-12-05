@@ -150,8 +150,6 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self):
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_socket.bind((IP,PORT))
         data, addr = server_socket.recvfrom(1024)
         data_to_proxy = f"{int(player.wcx)} {int(player.wcy)}"
         enemy_data = ''
@@ -172,8 +170,11 @@ class Player2 (Player):
         data = str(data).split(" ")
 
         print(data)
-        self.wcx = float(''.join([char for char in data[0] if char.isdigit()]))
-        self.wcy = float(''.join([char for char in data[1] if char.isdigit()]))
+        try:
+            self.wcx = float(data[0].decode())
+            self.wcy = float(data[1].decode())
+        except Exception as e:
+            print("Data invalid: ",e)
 
     def rectify(self):
         self.cx = self.wcx - camera_follow.cam_cx
@@ -544,6 +545,8 @@ key_g_held_down = False
 #server_socket.listen()
 print("server on")
 #(proxy_socket, proxy_address) = server_socket.accept()
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server_socket.bind((IP,PORT))
 print("client on")
 
 #server_socket.setblocking(False)

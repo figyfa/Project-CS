@@ -165,7 +165,7 @@ class Player2 (Player):
             try:
                 x = float(data[i])
                 y = float(data[i+1])
-                t = float(data[i+2])
+                t = data[i+2]
             except Exception as e:
                 print(e)
                 break
