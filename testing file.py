@@ -788,6 +788,7 @@ while running:
                     player2.wcx += 3 * player2.sprinting
                     #print("moving right")
 
+        print(f"Cam cx: {camera_follow.cam_cx}, Cam cy: {camera_follow.cam_cy}")
         for enemy in enemies:
             world.objects.append(enemy)
         for virus in viruses:

@@ -80,7 +80,8 @@ class Player:
         self.hcy = cy
         self.radius = 25
         self.sprinting = 1
-        self.health = 100
+        self.max_health = 9999
+        self.health = 9999
         self.colour = (0,0,0)
         self.laser_trail = []
         self.first_run = True
@@ -101,7 +102,7 @@ class Player:
         #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
         if self.health > 0:
-            self.colour = (0,255 * (100 - self.health)/100,0)
+            self.colour = (0,255 * (self.max_health - self.health)/self.max_health,0)
             return False
         else:
             print("Game over")
@@ -167,12 +168,12 @@ class Player2 (Player):
         #print(data)
         #print(f"Sent {data_to_proxy}")
 
-        data = str(data).split(" ")
+        data = data.decode().split(" ")
 
         print(data)
         try:
-            self.wcx = float(data[0].decode())
-            self.wcy = float(data[1].decode())
+            self.wcx = float(data[0])
+            self.wcy = float(data[1])
         except Exception as e:
             print("Data invalid: ",e)
 
