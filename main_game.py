@@ -80,8 +80,8 @@ class Player:
         self.hcy = cy
         self.radius = 25
         self.sprinting = 1
-        self.max_health = 9999
-        self.health = 9999
+        self.max_health = 100
+        self.health = 100
         self.colour = (0,0,0)
         self.laser_trail = []
         self.first_run = True
@@ -152,15 +152,15 @@ class Player2 (Player):
 
     def recv_and_send_data(self):
         data, addr = server_socket.recvfrom(1024)
-        data_to_proxy = f"{int(player.wcx)} {int(player.wcy)}"
+        data_to_proxy = f"{int(player.wcx)} {int(player.wcy)} {int(player2.health)}"
         enemy_data = ''
-        print(f"world x:{player.wcx},world y: {player.wcy}")
+        print(f"world x:{player.wcx},world y: {player.wcy}, player1 health:{player.health}, player2 health:{player2.health}")
         for enemy in enemies:
             if enemy not in viruses:
-                enemy_data_temp = f" {int(enemy.wcx)} {int(enemy.wcy)} e"
+                enemy_data_temp = f" {int(enemy.wcx)} {int(enemy.wcy)} {int(enemy.health)} e"
                 enemy_data += enemy_data_temp
             else:
-                enemy_data_temp = f" {int(enemy.wcx)} {int(enemy.wcy)} v"
+                enemy_data_temp = f" {int(enemy.wcx)} {int(enemy.wcy)} {int(enemy.health)} v"
                 enemy_data += enemy_data_temp
         data_to_proxy += enemy_data
         #print(f"Received {data}")
@@ -174,6 +174,9 @@ class Player2 (Player):
         try:
             self.wcx = float(data[0])
             self.wcy = float(data[1])
+
+            for enemy in enemies:
+                enemy.health = int(data[enemies.index(enemy)+2])
         except Exception as e:
             print("Data invalid: ",e)
 
@@ -263,6 +266,12 @@ class Enemy:
         if calc_distance(self,player) < 10 and self.health > 0:
             if seconds > (self.last_hit_time + 0.7):
                 player.health -= 2
+                self.last_hit_time = seconds
+                print("player hit")
+
+        if calc_distance(self,player2) < 10 and self.health > 0:
+            if seconds > (self.last_hit_time + 0.7):
+                player2.health -= 2
                 self.last_hit_time = seconds
                 print("player hit")
 
@@ -520,7 +529,7 @@ world = GameWorld(player)
 world.objects.append(island)
 world.objects.append(player2)
 enemies = []
-for i in range(10):
+for i in range(3):
     enemies.append(Enemy(random.randint(0,750),random.randint(0,450),enemy_id))
     enemy_id += 1
 active_grenades = []
@@ -531,7 +540,7 @@ my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
 viruses = []
-for i in range(5):
+for i in range(0):
     viruses.append(Virus(enemy_id))
     enemy_id += 1
 main_menu = True
@@ -594,7 +603,10 @@ while running:
         player.draw()
         for enemy in enemies:
             enemy.draw()
-            enemy.beeline(player)
+            if calc_distance(player,enemy) < calc_distance(player2,enemy):
+                enemy.beeline(player)
+            else:
+                enemy.beeline(player2)
         keys = pygame.key.get_pressed()
         world.keys = pygame.key.get_pressed()
 

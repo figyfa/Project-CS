@@ -96,11 +96,12 @@ class Player:
         elif self.vy < 0:
             self.vy += 0.1
     def draw(self):
+        print(f"I think the players health is: {self.health}")
         pygame.draw.circle(screen, self.colour, (self.wcx-camera_follow.cam_cx, self.wcy-camera_follow.cam_cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
         if self.health > 0:
-            self.colour = (0,255 * (100 - self.health)/100,0)
+            self.colour = (0,255 * (self.health/100),0)
         else:
             print("Game over")
             main_menu = True
@@ -137,7 +138,7 @@ class Player:
             for circle in self.laser_trail:
                 circle = (circle[0]-camera_follow.cam_cx,circle[1]-camera_follow.cam_cy)
                 if calc_distance_circle_and_point(enemy,circle) < 0:
-                    damage_instance[enemy] -= 5
+                    enemy.health -= 5
 
         self.laser_trail = []
 
@@ -164,15 +165,18 @@ class Player2 (Player):
         print(data)
         player.wcx = int(float(data[0]))
         player.wcy = int(float(data[1]))
+        self.health = int(float(data[2]))
 
         enemies = []
 
-        for i in range(2, len(data), 3):
+        for i in range(3, len(data), 4):
             # print(data[i+2])
-            if data[i + 2][0] == "e":
+            if data[i + 3][0] == "e":
                 enemies.append(Enemy(float(data[i]), float(data[i + 1])))
-            if data[i + 2][0] == "v":
+                enemies[-1].health = int(data[i+2])
+            if data[i + 3][0] == "v":
                 enemies.append(Virus(float(data[i]), float(data[i + 1])))
+                enemies[-1].health = int(data[i+2])
 
         return enemies
 
@@ -219,6 +223,7 @@ class Enemy:
     '''
 
     def evaluate_health(self):
+        print(f"Enemy health before evaluation: {self.health}")
         if 100 >= (self.health) >= 1:
             self.colour =(255,255 * (self.health / 100),255)
             screen.blit(self.image_list[self.health//11], (self.cx-32,self.cy-32))
@@ -575,10 +580,17 @@ while running:
         island.draw()
         player2.draw()
 
+        player2.update_health()
+
         data[0] = player2.wcx
         data[1] = player2.wcy
 
         user_input = (f"{str(int(data[0]))} {str(int(data[1]))}")
+
+
+        for enemy in enemies:
+            user_input += f" {enemy.health}"
+
         user_input = ''.join(user_input)
 
         if frames % 1 == 0:
@@ -591,7 +603,11 @@ while running:
         print(enemies)
 
         for enemy in enemies:
-            damage_instance.update({enemy:0})
+            enemy.evaluate_health()
+            enemy.clean_up()
+            enemy.scan_for_friendlies(enemies)
+            print(f" enemy health is {enemy.health}")
+
 
         if debugging:
             camera_follow.draw()
@@ -831,13 +847,8 @@ while running:
             pygame.draw.circle(screen,(255,50,255),(player2.hcx,player2.hcy),10)
 
         bullet_system.clean_shot()
-        player2.update_health()
 
-        for enemy in enemies:
-            enemy.evaluate_health()
-            enemy.clean_up()
-            enemy.scan_for_friendlies(enemies)
-            #print(enemy.health)
+
 
         for virus in viruses:
             if virus.health > 0:
