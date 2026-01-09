@@ -23,6 +23,9 @@ def calc_distance(pointA, pointB):
 def calc_distance_circle_and_point(pointA, pointB):
     return math.sqrt((pointA.wcx - pointB[0]-camera_follow.cam_cx)**2 + (pointA.wcy - pointB[1] - camera_follow.cam_cy)**2) - pointA.radius
 
+def calc_distance_between_circle_and_point_cx(pointA, pointB):
+    return math.sqrt((pointA.cx - pointB[0])**2 + (pointA.cy - pointB[1])**2) - pointA.radius
+
 class Island:
     def __init__(self,colour, radius, cx, cy):
         self.colour = colour
@@ -137,7 +140,8 @@ class Player:
         for enemy in enemies:
             for circle in self.laser_trail:
                 circle = (circle[0]-camera_follow.cam_cx,circle[1]-camera_follow.cam_cy)
-                if calc_distance_circle_and_point(enemy,circle) < 0:
+                print(f"Distance between enemy and laser is {calc_distance_between_circle_and_point_cx(enemy,circle)}")
+                if calc_distance_between_circle_and_point_cx(enemy,circle) < 0:
                     enemy.health -= 5
 
         self.laser_trail = []
@@ -150,7 +154,7 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self,user_input,damage_to_target: dict):
-
+        print(f"Sending {user_input}")
         my_socket.sendto(user_input.encode(),(IP_PROXY,PORT))
 
         print(f"World coordinate: {self.wcx},{self.wcy}")
@@ -172,10 +176,10 @@ class Player2 (Player):
         for i in range(3, len(data), 4):
             # print(data[i+2])
             if data[i + 3][0] == "e":
-                enemies.append(Enemy(float(data[i]), float(data[i + 1])))
+                enemies.append(Enemy(float(data[i])-camera_follow.cam_cx, float(data[i + 1])-camera_follow.cam_cy))
                 enemies[-1].health = int(data[i+2])
             if data[i + 3][0] == "v":
-                enemies.append(Virus(float(data[i]), float(data[i + 1])))
+                enemies.append(Virus(float(data[i])-camera_follow.cam_cx, float(data[i + 1])-camera_follow.cam_cy))
                 enemies[-1].health = int(data[i+2])
 
         return enemies

@@ -151,7 +151,13 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self):
-        data, addr = server_socket.recvfrom(1024)
+        try:
+            data, addr = server_socket.recvfrom(1024)
+        except socket.timeout:
+            print("Connection timed out, starting singleplayer")
+            singleplayer = True
+            return singleplayer
+
         data_to_proxy = f"{int(player.wcx)} {int(player.wcy)} {int(player2.health)}"
         enemy_data = ''
         print(f"world x:{player.wcx},world y: {player.wcy}, player1 health:{player.health}, player2 health:{player2.health}")
@@ -169,16 +175,18 @@ class Player2 (Player):
         #print(f"Sent {data_to_proxy}")
 
         data = data.decode().split(" ")
-
-        print(data)
         try:
+            print(data)
             self.wcx = float(data[0])
             self.wcy = float(data[1])
 
             for enemy in enemies:
                 enemy.health = int(data[enemies.index(enemy)+2])
-        except Exception as e:
-            print("Data invalid: ",e)
+        except:
+            print("Data not sent")
+
+        singleplayer = False
+
 
     def rectify(self):
         self.cx = self.wcx - camera_follow.cam_cx
@@ -529,18 +537,19 @@ world = GameWorld(player)
 world.objects.append(island)
 world.objects.append(player2)
 enemies = []
-for i in range(3):
+for i in range(0):
     enemies.append(Enemy(random.randint(0,750),random.randint(0,450),enemy_id))
     enemy_id += 1
 active_grenades = []
 
+singleplayer = False
 
 pygame.font.init()
 my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
 viruses = []
-for i in range(0):
+for i in range(2):
     viruses.append(Virus(enemy_id))
     enemy_id += 1
 main_menu = True
@@ -558,6 +567,8 @@ print("server on")
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_socket.bind((IP,PORT))
 print("client on")
+
+server_socket.settimeout(2)
 
 #server_socket.setblocking(False)
 while running:
@@ -591,8 +602,8 @@ while running:
         island.draw()
         player2.draw()
         print("I GOT HERE GGS")
-        if frames % 1 == 0:
-            player2.recv_and_send_data()
+        if frames % 1 == 0 and not singleplayer:
+            singleplayer = player2.recv_and_send_data()
             #print("data sent")
 
         player2.rectify()
