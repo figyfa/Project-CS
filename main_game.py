@@ -152,13 +152,14 @@ class Player2 (Player):
 
     def recv_and_send_data(self):
         try:
-            data, addr = server_socket.recvfrom(1024)
+            data = server_socket.recv(1024)
         except socket.timeout:
             print("Connection timed out, starting singleplayer")
             singleplayer = True
             return singleplayer
 
         data_to_proxy = f"{int(player.wcx)} {int(player.wcy)} {int(player2.health)}"
+        print(f"Data to proxy {data_to_proxy}")
         enemy_data = ''
         print(f"world x:{player.wcx},world y: {player.wcy}, player1 health:{player.health}, player2 health:{player2.health}")
         for enemy in enemies:
@@ -186,6 +187,7 @@ class Player2 (Player):
             print("Data not sent")
 
         singleplayer = False
+        return singleplayer
 
 
     def rectify(self):
@@ -564,11 +566,18 @@ key_g_held_down = False
 #server_socket.listen()
 print("server on")
 #(proxy_socket, proxy_address) = server_socket.accept()
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((IP,PORT))
 print("client on")
 
-server_socket.settimeout(2)
+server_socket.settimeout(10)
+server_socket.listen()
+
+try:
+    (proxy_socket, proxy_address) = server_socket.accept()
+except:
+    print("Connection timed out, starting singleplayer")
+    singleplayer = True
 
 #server_socket.setblocking(False)
 while running:

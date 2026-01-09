@@ -37,6 +37,7 @@ class Island:
 
     def draw(self):
         pygame.draw.circle(screen, (self.colour), (self.cx, self.cy), self.radius)
+        print("Island drawn")
 
 class Gun:
     def __init__(self):
@@ -173,6 +174,8 @@ class Player2 (Player):
 
         enemies = []
 
+
+
         for i in range(3, len(data), 4):
             # print(data[i+2])
             if data[i + 3][0] == "e":
@@ -189,6 +192,11 @@ class Player2 (Player):
         player.cy = player.wcy - camera_follow.cam_cy
 
         #print(f"Rectified data {player.cx} {player.cy}")
+
+    def draw(self):
+        print(f"I think the player 2 health is: {self.health}")
+        pygame.draw.circle(screen, self.colour, (self.wcx - camera_follow.cam_cx, self.wcy - camera_follow.cam_cy),self.radius)
+        # print("Player drawn at",self.cx,self.cy)
 
 class Enemy:
     def __init__(self,cx,cy):
