@@ -11,7 +11,7 @@ pygame.init()
 screen = pygame.display.set_mode((1500, 900))
 
 running = True
-
+pygame.display.set_caption("Client")
 debugging = True
 
 FPS = 60
@@ -156,11 +156,11 @@ class Player2 (Player):
 
     def recv_and_send_data(self,user_input,damage_to_target: dict):
         print(f"Sending {user_input}")
-        my_socket.sendto(user_input.encode(),(IP_PROXY,PORT))
+        my_socket.send(user_input.encode())
 
         print(f"World coordinate: {self.wcx},{self.wcy}")
         # print(f"Sent {user_input}")
-        data, addr = my_socket.recvfrom(1024)
+        data = my_socket.recv(1024)
 
         data = data.decode()
         print(f"Received {data}")
@@ -538,7 +538,8 @@ text_surface = my_font.render('Waiting for host', False, (0, 0, 0))
 
 viruses = []
 
-my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+my_socket.connect((IP_PROXY, PORT))
 
 main_menu = False
 for virus in viruses:
@@ -568,13 +569,6 @@ while running:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 main_menu = False
-
-        try:
-            my_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-            my_socket.bind((IP_PROXY,PORT))
-            main_menu = False
-        except:
-            pass
         pygame.display.flip()
     else:
 

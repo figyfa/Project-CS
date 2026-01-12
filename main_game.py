@@ -17,6 +17,7 @@ debugging = True
 
 FPS = 60
 fpsClock = pygame.time.Clock()
+pygame.display.set_caption("Server")
 
 def calc_distance(pointA, pointB):
     return math.sqrt((pointA.wcx - pointB.wcx)**2 + (pointA.wcy - pointB.wcy)**2) - pointA.radius - pointB.radius
@@ -151,12 +152,7 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self):
-        try:
-            data = server_socket.recv(1024)
-        except socket.timeout:
-            print("Connection timed out, starting singleplayer")
-            singleplayer = True
-            return singleplayer
+
 
         data_to_proxy = f"{int(player.wcx)} {int(player.wcy)} {int(player2.health)}"
         print(f"Data to proxy {data_to_proxy}")
@@ -171,9 +167,15 @@ class Player2 (Player):
                 enemy_data += enemy_data_temp
         data_to_proxy += enemy_data
         #print(f"Received {data}")
-        server_socket.sendto(data_to_proxy.encode(),addr)
+        server_socket.send(data_to_proxy.encode())
         #print(data)
         #print(f"Sent {data_to_proxy}")
+        try:
+            data = server_socket.recv(1024)
+        except socket.timeout:
+            print("Connection timed out, starting singleplayer")
+            singleplayer = True
+            return singleplayer
 
         data = data.decode().split(" ")
         try:
@@ -568,9 +570,10 @@ print("server on")
 #(proxy_socket, proxy_address) = server_socket.accept()
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((IP,PORT))
-print("client on")
+
 
 server_socket.settimeout(10)
+print("Time out set")
 server_socket.listen()
 
 try:
