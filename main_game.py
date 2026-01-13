@@ -1,8 +1,19 @@
-
+import queue
+import threading
 import pygame
 import math
 import random
 import socket
+import asyncio
+
+players = {}
+game_to_net = queue.Queue()
+
+def build_state_snapshot():
+    return {
+        pid: {"x": p.x, "y": p.y}
+        for pid, p in players.items()
+    }
 
 IP = "127.0.0.1"
 PORT = 8000
@@ -600,6 +611,12 @@ while running:
                 main_menu = False
         pygame.display.flip()
     else:
+
+        game_to_net.put({
+            "type": "state",
+            "players": build_state_snapshot()
+        })
+
         #print(camera_follow.cam_cx)
         #print(camera_follow.cam_cy)
 
