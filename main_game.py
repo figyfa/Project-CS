@@ -1,19 +1,7 @@
-import queue
-import threading
 import pygame
 import math
 import random
 import socket
-import asyncio
-
-players = {}
-game_to_net = queue.Queue()
-
-def build_state_snapshot():
-    return {
-        pid: {"x": p.x, "y": p.y}
-        for pid, p in players.items()
-    }
 
 IP = "127.0.0.1"
 PORT = 8000
@@ -24,7 +12,7 @@ screen = pygame.display.set_mode((1500, 900))
 
 running = True
 
-debugging = True
+debugging = False
 
 FPS = 60
 fpsClock = pygame.time.Clock()
@@ -54,7 +42,19 @@ class Gun:
         self.hcx = 0
         self.hcy = 0
 
+class Tree:
+    def __init__(self,wcx,wcy):
+        self.wcx = wcx
+        self.wcy = wcy
+        self.cx = wcx
+        self.cy = wcy
+        self.radius = 25
 
+    def draw(self):
+        pygame.draw.rect(screen,(150,75,0),(self.cx-18,self.cy-93,36,115))
+        pygame.draw.circle(screen,(0,240,20),(self.cx,self.cy-163),72)
+        if debugging:
+            pygame.draw.circle(screen,(255,255,255),(self.cx,self.cy),self.radius)
 class BoundingBox:
     def __init__(self,lx=450,ty=200,width=600,height=500,screen=screen):
         self.lx = lx
@@ -100,6 +100,46 @@ class Player:
         self.wcx = 600
         self.wcy = 300
 
+        #For collision
+        self.left = (self.cx - 30,self.cy)
+        self.up = (self.cx,self.cy - 10)
+        self.right = (self.cx + 10,self.cy)
+        self.down = (self.cx,self.cy+10)
+        self.upleft = (self.cx,self.cy)
+        self.upright = (self.cx,self.cy)
+        self.downleft = (self.cx,self.cy)
+        self.downright = (self.cx,self.cy)
+        self.walking_spots = [self.left,self.right,self.down,self.up,self.upleft,self.downleft,self.downright,self.upright]
+        self.collision_radius = 5
+
+        self.left_walkable = True
+        self.right_walkable = True
+        self.down_walkable = True
+        self.up_walkable = True
+        self.downleft_walkable = True
+        self.downright_walkable = True
+        self.upright_walkable = True
+        self.upleft_walkable = True
+
+        self.walking_spot_permissions = [self.left_walkable,self.right_walkable,self.down_walkable,self.up_walkable,self.upleft_walkable,self.downleft_walkable,self.downright_walkable,self.upright_walkable]
+
+
+    def check_walkable(self,trees):
+        for i in range(len(trees)):
+            for j in range(len(self.walking_spots)):
+                if calc_distance_circle_and_point(trees[i],self.walking_spots[j]) <= self.collision_radius:
+                    self.walking_spot_permissions[j] = False
+                    print(f"{self.walking_spots[j]} FOUND UNWALKABLE")
+
+        self.left_walkable = self.walking_spot_permissions[0]
+        self.right_walkable = self.walking_spot_permissions[1]
+        self.down_walkable = self.walking_spot_permissions[2]
+        self.up_walkable = self.walking_spot_permissions[3]
+        self.upleft_walkable = self.walking_spot_permissions[4]
+        self.downleft_walkable = self.walking_spot_permissions[5]
+        self.downright_walkable = self.walking_spot_permissions[6]
+        self.upright_walkable = self.walking_spot_permissions[7]
+
     def decelerate(self):
         if self.vx < 0:
             self.vx += 0.1
@@ -111,6 +151,15 @@ class Player:
             self.vy += 0.1
     def draw(self):
         pygame.draw.circle(screen, self.colour, (self.wcx-camera_follow.cam_cx, self.wcy-camera_follow.cam_cy),self.radius)
+        if debugging:
+            pygame.draw.circle(screen,(34,123,35),self.left,self.collision_radius)
+            pygame.draw.circle(screen,(34,123,35),self.up,self.collision_radius)
+            pygame.draw.circle(screen,(34,123,35),self.right,self.collision_radius)
+            pygame.draw.circle(screen,(34,123,35),self.down,self.collision_radius)
+            pygame.draw.circle(screen,(34,123,35),self.downright,self.collision_radius)
+            pygame.draw.circle(screen,(34,123,35),self.upright,self.collision_radius)
+            pygame.draw.circle(screen,(34,123,35),self.upleft,self.collision_radius)
+            pygame.draw.circle(screen,(34,123,35),self.downleft,self.collision_radius)
         #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
         if self.health > 0:
@@ -143,7 +192,7 @@ class Player:
             for circle in self.laser_trail:
                 pygame.draw.circle(screen, (123,123,123), (circle[0]-camera_follow.cam_cx,circle[1]-camera_follow.cam_cy),5)
         else:
-            pygame.draw.line(screen, (11, 3, 252), (self.cx,self.cy),(self.laser_trail[-1][0],self.laser_trail[-1][1]),10)
+            pygame.draw.line(screen, (11, 3, 252), (self.cx,self.cy),(self.laser_trail[-1][0]-camera_follow.cam_cx,self.laser_trail[-1][1]-camera_follow.cam_cy),10)
 
 
 
@@ -163,6 +212,7 @@ class Player2 (Player):
 
 
     def recv_and_send_data(self):
+        '''
 
 
         data_to_proxy = f"{int(player.wcx)} {int(player.wcy)} {int(player2.health)}"
@@ -201,6 +251,8 @@ class Player2 (Player):
 
         singleplayer = False
         return singleplayer
+        '''
+        pass
 
 
     def rectify(self):
@@ -291,12 +343,13 @@ class Enemy:
                 player.health -= 2
                 self.last_hit_time = seconds
                 print("player hit")
-
+        '''
         if calc_distance(self,player2) < 10 and self.health > 0:
             if seconds > (self.last_hit_time + 0.7):
                 player2.health -= 2
                 self.last_hit_time = seconds
                 print("player hit")
+        '''
 
 
 class Virus(Enemy):
@@ -442,13 +495,14 @@ class Bullet_trail:
         self.fire_rate = 0
 
     def check_hit(self, enemies):
+        scanning_for_trees = True
         found = False
         index = 0
         got_hit_this_frame = False
         while not found and index < len(self.bullet_trail):
 
             for i in range(len(enemies)-1,-1,-1):
-                if calc_distance_circle_and_point(enemies[i], self.bullet_trail[index]) <= 0 and got_hit_this_frame == False:
+                if (calc_distance_circle_and_point(enemies[i], self.bullet_trail[index]) <= 0 and got_hit_this_frame == False):
                     enemies[i].health -= 20
                     #print(enemy.health)
                     #print("oof")
@@ -456,6 +510,13 @@ class Bullet_trail:
                     found = True
                     self.deadly_bullet = self.bullet_trail[index]
                     got_hit_this_frame = True
+
+            for i in range(len(trees)-1,-1,-1):
+                if calc_distance_circle_and_point(trees[i],self.bullet_trail[index]) <= 0:
+                    found=True
+                    self.deadly_bullet = self.bullet_trail[index]
+                    got_hit_this_frame = True
+                    print("Hit tree")
 
             else:
                 index += 1
@@ -546,18 +607,21 @@ enemy_id = 0
 camera_follow = BoundingBox()
 key_g_not_pressed = True
 player = Player(600,300)
-player2 = Player2(600,300)
-players = [player,player2]
+#player2 = Player2(600,300)
+players = [player] #,player2]
 world = GameWorld(player)
 world.objects.append(island)
-world.objects.append(player2)
+#world.objects.append(player2)
 enemies = []
+trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(10)]
+for i in range(len(trees)):
+    world.objects.append(trees[i])
 for i in range(0):
     enemies.append(Enemy(random.randint(0,750),random.randint(0,450),enemy_id))
     enemy_id += 1
 active_grenades = []
 
-singleplayer = False
+singleplayer = True
 
 pygame.font.init()
 my_font = pygame.font.SysFont('Comic Sans MS', 30)
@@ -576,6 +640,7 @@ bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
 
+'''
 #server_socket.listen()
 print("server on")
 #(proxy_socket, proxy_address) = server_socket.accept()
@@ -594,10 +659,11 @@ except:
     singleplayer = True
 
 #server_socket.setblocking(False)
+'''
 while running:
 
     if main_menu:
-        print("I suck")
+        print("Main Menu")
         menu_screen = pygame.Surface((1500,900))
         menu_screen.fill((255,255,45))
         screen.blit(menu_screen,(0,0))
@@ -611,12 +677,6 @@ while running:
                 main_menu = False
         pygame.display.flip()
     else:
-
-        game_to_net.put({
-            "type": "state",
-            "players": build_state_snapshot()
-        })
-
         #print(camera_follow.cam_cx)
         #print(camera_follow.cam_cy)
 
@@ -629,24 +689,24 @@ while running:
 
         screen.fill((107, 191, 255))
         island.draw()
-        player2.draw()
-        print("I GOT HERE GGS")
+        #player2.draw()
+        #print("I GOT HERE GGS")
+        '''
         if frames % 1 == 0 and not singleplayer:
             singleplayer = player2.recv_and_send_data()
             #print("data sent")
-
-        player2.rectify()
+            player2.rectify()
+        '''
 
 
         if debugging:
             camera_follow.draw()
         player.draw()
+        for tree in trees:
+            tree.draw()
         for enemy in enemies:
             enemy.draw()
-            if calc_distance(player,enemy) < calc_distance(player2,enemy):
-                enemy.beeline(player)
-            else:
-                enemy.beeline(player2)
+            enemy.beeline(player)
         keys = pygame.key.get_pressed()
         world.keys = pygame.key.get_pressed()
 
@@ -710,22 +770,24 @@ while running:
         else:
             player.sprinting = 1
 
+        player.check_walkable(trees)
+
         if player.in_camera:
-            if keys[pygame.K_w]:
+            if keys[pygame.K_w] and player.up_walkable and player.upright_walkable and player.upleft_walkable:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcy -= 3 * player.sprinting
                     player.cy = player.hcy
                     player.wcy -= 3 * player.sprinting
                     #print("Moving up",player.cx,player.cy)
-                    if keys[pygame.K_a]:
+                    if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
                         player.hcx -= 2.121 * player.sprinting
                         player.hcy += 0.879 * player.sprinting
                         player.cx = player.hcx
                         player.wcx -= 2.121 * player.sprinting
                         player.wcy += 0.879 * player.sprinting
                         #print("Moving up and left")
-                    if keys[pygame.K_d]:
+                    if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
                         player.hcx += 2.121 * player.sprinting
                         player.hcy += 0.879 * player.sprinting
                         player.cx = player.hcx
@@ -733,21 +795,21 @@ while running:
                         player.wcy += 0.879 * player.sprinting
                         #print("Moving up and right")
 
-            if keys[pygame.K_s]:
+            if keys[pygame.K_s] and player.down_walkable and player.downleft_walkable and player.downright_walkable:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcy += 3 * player.sprinting
                     player.cy = player.hcy
                     player.wcy += 3 * player.sprinting
                     #print("Moving down")
-                    if keys[pygame.K_a]:
+                    if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
                         player.hcx -= 2.121 * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
                         player.cx = player.hcx
                         player.wcx -= 2.121 * player.sprinting
                         player.wcy -= 0.879 * player.sprinting
                         #print("Moving down and left")
-                    if keys[pygame.K_d]:
+                    if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
                         #print("Moving down and right")
                         player.hcx += 2.121 * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
@@ -755,7 +817,7 @@ while running:
                         player.wcx += 2.121 * player.sprinting
                         player.wcy -= 0.879 * player.sprinting
 
-            if keys[pygame.K_a]:
+            if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcx -= 3 * player.sprinting
@@ -763,7 +825,7 @@ while running:
                     player.wcx -= 3 * player.sprinting
                     #print("moving left")
 
-            if keys[pygame.K_d]:
+            if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcx += 3 * player.sprinting
@@ -772,14 +834,14 @@ while running:
                     #print("moving right")
 
         else:
-            if keys[pygame.K_w]:
+            if keys[pygame.K_w] and player.up_walkable and player.upleft_walkable and player.upright_walkable:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcy -= 3 * player.sprinting
                     camera_follow.cam_cy -= 3 * player.sprinting
                     player.wcy -= 3 * player.sprinting
                     #print("Moving up",player.cx,player.cy)
-                    if keys[pygame.K_a]:
+                    if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
                         player.hcx -= 2.121 * player.sprinting
                         player.hcy += 0.879 * player.sprinting
                         camera_follow.cam_cx -= 2.121 * player.sprinting
@@ -787,7 +849,7 @@ while running:
                         player.wcx -= 2.121 * player.sprinting
                         player.wcy += 0.879 * player.sprinting
                         #print("Moving up and left")
-                    if keys[pygame.K_d]:
+                    if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
                         player.hcx += 2.121 * player.sprinting
                         player.hcy += 0.879 * player.sprinting
                         camera_follow.cam_cx += 2.121 * player.sprinting
@@ -796,14 +858,14 @@ while running:
                         player.wcy += 0.879 * player.sprinting
                         #print("Moving up and right")
 
-            if keys[pygame.K_s]:
+            if keys[pygame.K_s] and player.down_walkable and player.downright_walkable and player.downleft_walkable:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcy += 3 * player.sprinting
                     camera_follow.cam_cy += 3 * player.sprinting
                     player.wcy += 3 * player.sprinting
                     #print("Moving down")
-                    if keys[pygame.K_a]:
+                    if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
                         player.hcx -= 2.121 * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
                         camera_follow.cam_cx -= 2.121 * player.sprinting
@@ -811,7 +873,7 @@ while running:
                         player.wcx -= 2.121 * player.sprinting
                         player.wcy -= 0.879 * player.sprinting
                         #print("Moving left and down")
-                    if keys[pygame.K_d]:
+                    if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
                         #print("Moving down and right")
                         player.hcx += 2.121 * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
@@ -820,7 +882,7 @@ while running:
                         player.wcx += 2.121 * player.sprinting
                         player.wcy -= 0.879 * player.sprinting
 
-            if keys[pygame.K_a]:
+            if keys[pygame.K_a] and player.left_walkable and player.downleft_walkable and player.upleft_walkable:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcx -= 3 * player.sprinting
@@ -828,7 +890,7 @@ while running:
                     player.wcx -= 3 * player.sprinting
                     #print("moving left")
 
-            if keys[pygame.K_d]:
+            if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
                 if move_ticker == 0:
                     move_ticker = 10
                     player.hcx += 3 * player.sprinting
@@ -836,6 +898,8 @@ while running:
                     player.wcx += 3 * player.sprinting
                     #print("moving right")
 
+
+        player.walking_spot_permissions = [True for i in range(8)]
 
         for item in world.objects:
             item.cx = item.wcx - camera_follow.cam_cx
@@ -885,6 +949,17 @@ while running:
             virus.scan_for_friendlies(enemies)
 
         camera_follow.scan_for_player(player)
+
+        player.left = (player.cx - 30, player.cy)
+        player.up = (player.cx, player.cy - 30)
+        player.right = (player.cx + 30, player.cy)
+        player.down = (player.cx, player.cy + 30)
+        player.upleft = (player.cx-30,player.cy-30)
+        player.downright = (player.cx+30,player.cy+30)
+        player.downleft = (player.cx-30,player.cy+30)
+        player.upright = (player.cx+30,player.cy-30)
+
+        player.walking_spots = [player.left,player.right,player.down,player.up,player.upleft,player.downleft,player.downright,player.upright]
 
         if not player.in_camera:
             player.hcx = player.cx
