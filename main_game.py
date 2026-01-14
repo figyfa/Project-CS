@@ -464,6 +464,10 @@ class Grenade_v2:
                 self.thrown = False
                 #print("Exploding on collision")
                 self.explode()
+        for i in range(len(trees)):
+            if calc_distance(self,trees[i]) < -95 and player.health > 0:
+                self.thrown = False
+                self.explode()
 
         self.wcx += self.dx
         self.wcy += self.dy
