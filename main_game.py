@@ -12,7 +12,7 @@ screen = pygame.display.set_mode((1500, 900))
 
 running = True
 
-debugging = False
+debugging = True
 
 FPS = 60
 fpsClock = pygame.time.Clock()
@@ -42,6 +42,24 @@ class Gun:
         self.hcx = 0
         self.hcy = 0
 
+class Sword:
+    def __init__(self):
+        self.cx = 0
+        self.cy = 0
+        self.wcx = 0
+        self.wcy = 0
+        self.radius = 27
+        self.colour = (255,255,255)
+
+    def draw(self):
+        if debugging:
+            pygame.draw.circle(screen, (self.colour),(self.cx,self.cy),self.radius)
+
+    def check_hit(self,enemies):
+        for enemy in enemies:
+            if calc_distance(enemy,self) <= 0:
+                enemy.take_damage_from_sword()
+
 class Tree:
     def __init__(self,wcx,wcy):
         self.wcx = wcx
@@ -49,6 +67,8 @@ class Tree:
         self.cx = wcx
         self.cy = wcy
         self.radius = 25
+        self.xvector = 0
+        self.yvector = 0
 
     def draw(self):
         pygame.draw.rect(screen,(150,75,0),(self.cx-18,self.cy-93,36,115))
@@ -129,7 +149,11 @@ class Player:
             for j in range(len(self.walking_spots)):
                 if calc_distance_circle_and_point(trees[i],self.walking_spots[j]) <= self.collision_radius:
                     self.walking_spot_permissions[j] = False
-                    print(f"{self.walking_spots[j]} FOUND UNWALKABLE")
+                    #print(f"{self.walking_spots[j]} FOUND UNWALKABLE")
+
+        for i in range(len(self.walking_spots)):
+            if calc_distance_circle_and_point(island,self.walking_spots[i]) >= self.collision_radius:
+                self.walking_spot_permissions[i] = False
 
         self.left_walkable = self.walking_spot_permissions[0]
         self.right_walkable = self.walking_spot_permissions[1]
@@ -279,6 +303,8 @@ class Enemy:
         self.enemies_nearby = 0
         self.last_hit_time = -1
         self.image_list = []
+        self.stunned = False
+        self.initialised = False
         for i in range(10):
             imp = pygame.image.load(f"./image/virus_death0{i}.png").convert_alpha()
             imp.set_colorkey((0, 0, 0))
@@ -298,6 +324,11 @@ class Enemy:
             else:
                 index += 1
     '''
+    def take_damage_from_sword(self):
+        self.health -= 30
+        self.got_hit_this_frame = True
+        self.stunned = True
+
 
     def evaluate_health(self):
         if 100 >= (self.health) >= 1:
@@ -325,24 +356,33 @@ class Enemy:
 
     def beeline(self,player):
         angle = math.pi
-        if player.cx - enemy.cx != 0:
-            angle = math.atan((player.cy - enemy.cy)/(player.cx - enemy.cx))
-        #print(angle/math.pi*180)
-        self.vx = -3 * math.cos(angle)
-        self.vy = -3 * math.sin(angle)
+        if not self.stunned:
+            if player.cx - enemy.cx != 0:
+                angle = math.atan((player.cy - enemy.cy)/(player.cx - enemy.cx))
+            #print(angle/math.pi*180)
+            self.vx = -3 * math.cos(angle)
+            self.vy = -3 * math.sin(angle)
 
-        if enemy.cx > player.cx:
-            self.wcx += self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
-            self.wcy += self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+            if enemy.cx > player.cx:
+                self.wcx += self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+                self.wcy += self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+            else:
+                self.wcx -= self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+                self.wcy -= self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+
+            if calc_distance(self,player) < 10 and self.health > 0:
+                if seconds > (self.last_hit_time + 0.7):
+                    player.health -= 2
+                    self.last_hit_time = seconds
+                    print("player hit")
         else:
-            self.wcx -= self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
-            self.wcy -= self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
-
-        if calc_distance(self,player) < 10 and self.health > 0:
-            if seconds > (self.last_hit_time + 0.7):
-                player.health -= 2
-                self.last_hit_time = seconds
-                print("player hit")
+            if not self.initialised:
+                self.current_seconds = seconds
+                self.initialised = True
+            else:
+                if seconds > self.current_seconds+0.5:
+                    self.initialised = False
+                    self.stunned = False
         '''
         if calc_distance(self,player2) < 10 and self.health > 0:
             if seconds > (self.last_hit_time + 0.7):
@@ -643,6 +683,7 @@ for enemy in enemies:
 bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
+sword = Sword()
 
 '''
 #server_socket.listen()
@@ -719,10 +760,25 @@ while running:
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    bullet_system.create_shot(player,pygame.mouse.get_pos(),0.1)
+                    bullet_system.check_hit(enemies)
+                    #print(enemy.health)
+                if event.button == 3:
+                    mouse_pos = pygame.mouse.get_pos()
 
-                bullet_system.create_shot(player,pygame.mouse.get_pos(),0.1)
-                bullet_system.check_hit(enemies)
-                #print(enemy.health)
+                    sword.xvector = mouse_pos[0] - player.cx
+                    sword.yvector = mouse_pos[1] - player.cy
+
+                    magnitude = math.sqrt(sword.xvector**2 + sword.yvector**2)
+
+                    sword.xvector = sword.xvector / magnitude
+                    sword.yvector = sword.yvector / magnitude
+
+                    sword.cx = player.cx + (sword.xvector*50)
+                    sword.cy = player.cy + (sword.yvector*50)
+
+                    sword.draw()
 
         if key_g_held_down and key_g_not_pressed:
             print("Created grenade")
@@ -954,14 +1010,14 @@ while running:
 
         camera_follow.scan_for_player(player)
 
-        player.left = (player.cx - 30, player.cy)
-        player.up = (player.cx, player.cy - 30)
-        player.right = (player.cx + 30, player.cy)
-        player.down = (player.cx, player.cy + 30)
-        player.upleft = (player.cx-30,player.cy-30)
-        player.downright = (player.cx+30,player.cy+30)
-        player.downleft = (player.cx-30,player.cy+30)
-        player.upright = (player.cx+30,player.cy-30)
+        player.left = (player.cx - 25, player.cy)
+        player.up = (player.cx, player.cy - 25)
+        player.right = (player.cx + 25, player.cy)
+        player.down = (player.cx, player.cy + 25)
+        player.upleft = (player.cx-18,player.cy-18)
+        player.downright = (player.cx+18,player.cy+18)
+        player.downleft = (player.cx-18,player.cy+18)
+        player.upright = (player.cx+18,player.cy-18)
 
         player.walking_spots = [player.left,player.right,player.down,player.up,player.upleft,player.downleft,player.downright,player.upright]
 
