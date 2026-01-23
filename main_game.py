@@ -60,7 +60,8 @@ class Sword:
     def check_hit(self,enemies):
         for enemy in enemies:
             if calc_distance(enemy,self) <= 0:
-                enemy.take_damage_from_sword()
+                enemy.take_damage_from_sword(sword.xvector,sword.yvector)
+                enemy.sword_stunned = True
 
 class Tree:
     def __init__(self,wcx,wcy):
@@ -295,6 +296,9 @@ class Target:
         self.radius = 5
         self.health = 100
 
+    def draw(self):
+        pygame.draw.circle(screen, (255,123,123), (int(self.cx),int(self.cy)),self.radius)
+
 class Enemy:
     def __init__(self,cx,cy,id):
         self.id = id
@@ -312,7 +316,9 @@ class Enemy:
         self.enemies_nearby = 0
         self.last_hit_time = -1
         self.image_list = []
-        self.stunned = False
+        self.sword_stunned = False
+        self.sword_target = Target(self.wcx,self.wcy)
+        world.objects.append(self.sword_target)
         self.initialised = False
         for i in range(10):
             imp = pygame.image.load(f"./image/virus_death0{i}.png").convert_alpha()
@@ -333,11 +339,20 @@ class Enemy:
             else:
                 index += 1
     '''
-    def take_damage_from_sword(self):
+    def take_damage_from_sword(self,sword_xvector,sword_yvector):
         print("enemy hit")
         self.health -= 30
         self.got_hit_this_frame = True
-        self.stunned = True
+        self.sword_target.wcx = self.wcx + sword_xvector *1000
+        self.sword_target.wcy = self.wcy + sword_yvector *1000
+
+    def recover_from_sword(self):
+        if self.initialised == False:
+            self.current_time = seconds + 0.5
+            self.initialised = True
+        if seconds > self.current_time:
+            self.initialised = False
+            self.sword_stunned = False
 
 
     def evaluate_health(self):
@@ -364,40 +379,27 @@ class Enemy:
         if debugging:
             pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
 
-    def beeline(self,player,sword_xvector=0,sword_yvector=0):
+    def beeline(self,player):
         angle = math.pi
-        if not self.stunned:
-            if player.cx - enemy.cx != 0:
-                angle = math.atan((player.cy - enemy.cy)/(player.cx - enemy.cx))
-            #print(angle/math.pi*180)
-            self.vx = -3 * math.cos(angle)
-            self.vy = -3 * math.sin(angle)
 
-            if enemy.cx > player.cx:
-                self.wcx += self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
-                self.wcy += self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
-            else:
-                self.wcx -= self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
-                self.wcy -= self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+        if player.cx - enemy.cx != 0:
+            angle = math.atan((player.cy - enemy.cy)/(player.cx - enemy.cx))
+        #print(angle/math.pi*180)
+        self.vx = -3 * math.cos(angle)
+        self.vy = -3 * math.sin(angle)
 
-            if calc_distance(self,player) < 10 and self.health > 0:
-                if seconds > (self.last_hit_time + 0.7):
-                    player.health -= 2
-                    self.last_hit_time = seconds
-                    print("player hit")
+        if enemy.cx > player.cx:
+            self.wcx += self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+            self.wcy += self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
         else:
-            if not self.initialised:
-                self.current_seconds = seconds
-                self.initialised = True
-            else:
-                if seconds > self.current_seconds+0.5:
-                    self.initialised = False
-                    self.stunned = False
+            self.wcx -= self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+            self.wcy -= self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
 
-            target = Target(self.wcx + sword_xvector,self.wcy + sword_yvector)
-            self.stunned = False
-            self.beeline(target)
-            self.stunned = True
+        if calc_distance(self,player) < 10 and self.health > 0:
+            if seconds > (self.last_hit_time + 0.7):
+                player.health -= 2
+                self.last_hit_time = seconds
+                #print("player hit")
         '''
         if calc_distance(self,player2) < 10 and self.health > 0:
             if seconds > (self.last_hit_time + 0.7):
@@ -677,7 +679,7 @@ enemies = []
 trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(10)]
 for i in range(len(trees)):
     world.objects.append(trees[i])
-for i in range(50):
+for i in range(5):
     enemies.append(Enemy(random.randint(0,750),random.randint(0,450),enemy_id))
     enemy_id += 1
 active_grenades = []
@@ -770,7 +772,13 @@ while running:
             tree.draw()
         for enemy in enemies:
             enemy.draw()
-            enemy.beeline(player,sword.xvector,sword.yvector)
+            if debugging:
+                enemy.sword_target.draw()
+            if not enemy.sword_stunned:
+                enemy.beeline(player)
+            else:
+                enemy.beeline(enemy.sword_target) # Composition 500IQ play
+                enemy.recover_from_sword()
         keys = pygame.key.get_pressed()
         world.keys = pygame.key.get_pressed()
 
