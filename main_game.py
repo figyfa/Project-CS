@@ -50,6 +50,8 @@ class Sword:
         self.wcy = 0
         self.radius = 27
         self.colour = (255,255,255)
+        self.xvector = 0
+        self.yvector = 0
 
     def draw(self):
         if debugging:
@@ -67,8 +69,6 @@ class Tree:
         self.cx = wcx
         self.cy = wcy
         self.radius = 25
-        self.xvector = 0
-        self.yvector = 0
 
     def draw(self):
         pygame.draw.rect(screen,(150,75,0),(self.cx-18,self.cy-93,36,115))
@@ -286,6 +286,15 @@ class Player2 (Player):
         print(f"Original data: {self.wcx},{self.wcy}")
         print(f"Rectified data {self.cx} {self.cy}")
 
+class Target:
+    def __init__(self,cx,cy):
+        self.cx = cx
+        self.cy = cy
+        self.wcx = cx
+        self.wcy = cy
+        self.radius = 5
+        self.health = 100
+
 class Enemy:
     def __init__(self,cx,cy,id):
         self.id = id
@@ -325,6 +334,7 @@ class Enemy:
                 index += 1
     '''
     def take_damage_from_sword(self):
+        print("enemy hit")
         self.health -= 30
         self.got_hit_this_frame = True
         self.stunned = True
@@ -354,7 +364,7 @@ class Enemy:
         if debugging:
             pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
 
-    def beeline(self,player):
+    def beeline(self,player,sword_xvector=0,sword_yvector=0):
         angle = math.pi
         if not self.stunned:
             if player.cx - enemy.cx != 0:
@@ -380,10 +390,14 @@ class Enemy:
                 self.current_seconds = seconds
                 self.initialised = True
             else:
-                print(seconds > self.current_seconds+20)
-                if seconds > self.current_seconds+20:
+                if seconds > self.current_seconds+0.5:
                     self.initialised = False
                     self.stunned = False
+
+            target = Target(self.wcx + sword_xvector,self.wcy + sword_yvector)
+            self.stunned = False
+            self.beeline(target)
+            self.stunned = True
         '''
         if calc_distance(self,player2) < 10 and self.health > 0:
             if seconds > (self.last_hit_time + 0.7):
@@ -663,7 +677,7 @@ enemies = []
 trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(10)]
 for i in range(len(trees)):
     world.objects.append(trees[i])
-for i in range(10):
+for i in range(50):
     enemies.append(Enemy(random.randint(0,750),random.randint(0,450),enemy_id))
     enemy_id += 1
 active_grenades = []
@@ -687,6 +701,8 @@ bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
 sword = Sword()
+sword_xvector = 0
+sword_yvector = 0
 
 '''
 #server_socket.listen()
@@ -754,7 +770,7 @@ while running:
             tree.draw()
         for enemy in enemies:
             enemy.draw()
-            enemy.beeline(player)
+            enemy.beeline(player,sword.xvector,sword.yvector)
         keys = pygame.key.get_pressed()
         world.keys = pygame.key.get_pressed()
 
@@ -780,8 +796,11 @@ while running:
 
                     sword.cx = player.cx + (sword.xvector*50)
                     sword.cy = player.cy + (sword.yvector*50)
+                    sword.wcx = player.wcx + (sword.xvector*50)
+                    sword.wcy = player.wcy + (sword.yvector*50)
 
                     sword.draw()
+                    sword.check_hit(enemies)
 
         if key_g_held_down and key_g_not_pressed:
             print("Created grenade")
