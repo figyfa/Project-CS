@@ -380,7 +380,8 @@ class Enemy:
                 self.current_seconds = seconds
                 self.initialised = True
             else:
-                if seconds > self.current_seconds+0.5:
+                print(seconds > self.current_seconds+20)
+                if seconds > self.current_seconds+20:
                     self.initialised = False
                     self.stunned = False
         '''
@@ -454,7 +455,7 @@ class Grenade_v2:
         self.cy = 0
         self.radius = 100
         self.actual_radius = 5
-        self.detonation_time = 5
+        self.detonation_time = 3
         self.colour = (123,123,123)
         self.exploded = False
         self.thrown = False
@@ -492,6 +493,8 @@ class Grenade_v2:
 
         print("throwing")
         pygame.draw.circle(screen, self.colour, (self.cx,self.cy),self.actual_radius)
+        self.dy = self.dy * 0.99
+        self.dx = self.dx * 0.99
         #print(target)
         print(self.pos)
         self.detonation_time -= (1/FPS)
@@ -660,7 +663,7 @@ enemies = []
 trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(10)]
 for i in range(len(trees)):
     world.objects.append(trees[i])
-for i in range(0):
+for i in range(10):
     enemies.append(Enemy(random.randint(0,750),random.randint(0,450),enemy_id))
     enemy_id += 1
 active_grenades = []
@@ -672,7 +675,7 @@ my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
 viruses = []
-for i in range(2):
+for i in range(0):
     viruses.append(Virus(enemy_id))
     enemy_id += 1
 main_menu = True
