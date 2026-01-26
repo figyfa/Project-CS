@@ -3,6 +3,8 @@ import math
 import random
 import socket
 
+HYPOTENUSE = 2.121
+
 IP = "127.0.0.1"
 PORT = 8000
 
@@ -12,7 +14,7 @@ screen = pygame.display.set_mode((1500, 900))
 
 running = True
 
-debugging = True
+debugging = False
 
 FPS = 60
 fpsClock = pygame.time.Clock()
@@ -99,6 +101,16 @@ class BoundingBox:
         else:
             player.in_camera = False
 
+class Health_bar():
+    def __init__(self):
+        self.cx = 5
+        self.cy = (screen.get_height()-65)
+        self.width = 200
+        self.height = 50
+
+    def draw(self):
+        pygame.draw.rect(screen,(0,0,0),(self.cx,self.cy,self.width,self.height))
+        pygame.draw.rect(screen,(255,0,0),(self.cx,self.cy,self.width-((1-player.health/100)*self.width),self.height))
 
 
 class Player:
@@ -643,22 +655,22 @@ class GameWorld:
 
             else:
                 if "down" in direction and "left" in direction:
-                    item.cy = item.cy - 2.121 * player.sprinting
-                    item.cx = item.cx + 2.121 * player.sprinting
+                    item.cy = item.cy - HYPOTENUSE * player.sprinting
+                    item.cx = item.cx + HYPOTENUSE * player.sprinting
 
 
                 if "up" in direction and "left" in direction:
-                    item.cy = item.cy + 2.121 * player.sprinting
-                    item.cx = item.cx + 2.121 * player.sprinting
+                    item.cy = item.cy + HYPOTENUSE * player.sprinting
+                    item.cx = item.cx + HYPOTENUSE * player.sprinting
 
 
                 if "right" in direction and "down" in direction:
-                    item.cx = item.cx - 2.121 * player.sprinting
-                    item.cy = item.cy - 2.121 * player.sprinting
+                    item.cx = item.cx - HYPOTENUSE * player.sprinting
+                    item.cy = item.cy - HYPOTENUSE * player.sprinting
 
                 if "right" in direction and "up" in direction:
-                    item.cx = item.cx - 2.121 * player.sprinting
-                    item.cy = item.cy + 2.121 * player.sprinting
+                    item.cx = item.cx - HYPOTENUSE * player.sprinting
+                    item.cy = item.cy + HYPOTENUSE * player.sprinting
 
 
 
@@ -676,13 +688,15 @@ world = GameWorld(player)
 world.objects.append(island)
 #world.objects.append(player2)
 enemies = []
-trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(10)]
+trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(15)] # How many trees
 for i in range(len(trees)):
     world.objects.append(trees[i])
-for i in range(5):
+for i in range(3): # How many enemies
     enemies.append(Enemy(random.randint(0,750),random.randint(0,450),enemy_id))
     enemy_id += 1
 active_grenades = []
+
+health_bar = Health_bar()
 
 singleplayer = True
 
@@ -691,7 +705,7 @@ my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
 viruses = []
-for i in range(0):
+for i in range(0): # How many viruses
     viruses.append(Virus(enemy_id))
     enemy_id += 1
 main_menu = True
@@ -802,10 +816,10 @@ while running:
                     sword.xvector = sword.xvector / magnitude
                     sword.yvector = sword.yvector / magnitude
 
-                    sword.cx = player.cx + (sword.xvector*50)
-                    sword.cy = player.cy + (sword.yvector*50)
-                    sword.wcx = player.wcx + (sword.xvector*50)
-                    sword.wcy = player.wcy + (sword.yvector*50)
+                    sword.cx = player.cx + (sword.xvector*30)
+                    sword.cy = player.cy + (sword.yvector*30)
+                    sword.wcx = player.wcx + (sword.xvector*30)
+                    sword.wcy = player.wcy + (sword.yvector*30)
 
                     sword.draw()
                     sword.check_hit(enemies)
@@ -871,17 +885,17 @@ while running:
                     player.wcy -= 3 * player.sprinting
                     #print("Moving up",player.cx,player.cy)
                     if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                        player.hcx -= 2.121 * player.sprinting
+                        player.hcx -= HYPOTENUSE * player.sprinting
                         player.hcy += 0.879 * player.sprinting
                         player.cx = player.hcx
-                        player.wcx -= 2.121 * player.sprinting
+                        player.wcx -= HYPOTENUSE * player.sprinting
                         player.wcy += 0.879 * player.sprinting
                         #print("Moving up and left")
                     if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                        player.hcx += 2.121 * player.sprinting
+                        player.hcx += HYPOTENUSE * player.sprinting
                         player.hcy += 0.879 * player.sprinting
                         player.cx = player.hcx
-                        player.wcx += 2.121 * player.sprinting
+                        player.wcx += HYPOTENUSE * player.sprinting
                         player.wcy += 0.879 * player.sprinting
                         #print("Moving up and right")
 
@@ -893,18 +907,18 @@ while running:
                     player.wcy += 3 * player.sprinting
                     #print("Moving down")
                     if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                        player.hcx -= 2.121 * player.sprinting
+                        player.hcx -= HYPOTENUSE * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
                         player.cx = player.hcx
-                        player.wcx -= 2.121 * player.sprinting
+                        player.wcx -= HYPOTENUSE * player.sprinting
                         player.wcy -= 0.879 * player.sprinting
                         #print("Moving down and left")
                     if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
                         #print("Moving down and right")
-                        player.hcx += 2.121 * player.sprinting
+                        player.hcx += HYPOTENUSE * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
                         player.cx = player.hcx
-                        player.wcx += 2.121 * player.sprinting
+                        player.wcx += HYPOTENUSE * player.sprinting
                         player.wcy -= 0.879 * player.sprinting
 
             if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
@@ -932,19 +946,19 @@ while running:
                     player.wcy -= 3 * player.sprinting
                     #print("Moving up",player.cx,player.cy)
                     if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                        player.hcx -= 2.121 * player.sprinting
+                        player.hcx -= HYPOTENUSE * player.sprinting
                         player.hcy += 0.879 * player.sprinting
-                        camera_follow.cam_cx -= 2.121 * player.sprinting
+                        camera_follow.cam_cx -= HYPOTENUSE * player.sprinting
                         camera_follow.cam_cy += 0.879 * player.sprinting
-                        player.wcx -= 2.121 * player.sprinting
+                        player.wcx -= HYPOTENUSE * player.sprinting
                         player.wcy += 0.879 * player.sprinting
                         #print("Moving up and left")
                     if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                        player.hcx += 2.121 * player.sprinting
+                        player.hcx += HYPOTENUSE * player.sprinting
                         player.hcy += 0.879 * player.sprinting
-                        camera_follow.cam_cx += 2.121 * player.sprinting
+                        camera_follow.cam_cx += HYPOTENUSE * player.sprinting
                         camera_follow.cam_cy += 0.879 * player.sprinting
-                        player.wcx += 2.121 * player.sprinting
+                        player.wcx += HYPOTENUSE * player.sprinting
                         player.wcy += 0.879 * player.sprinting
                         #print("Moving up and right")
 
@@ -956,20 +970,20 @@ while running:
                     player.wcy += 3 * player.sprinting
                     #print("Moving down")
                     if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                        player.hcx -= 2.121 * player.sprinting
+                        player.hcx -= HYPOTENUSE * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
-                        camera_follow.cam_cx -= 2.121 * player.sprinting
+                        camera_follow.cam_cx -= HYPOTENUSE * player.sprinting
                         camera_follow.cam_cy -= 0.879 * player.sprinting
-                        player.wcx -= 2.121 * player.sprinting
+                        player.wcx -= HYPOTENUSE * player.sprinting
                         player.wcy -= 0.879 * player.sprinting
                         #print("Moving left and down")
                     if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
                         #print("Moving down and right")
-                        player.hcx += 2.121 * player.sprinting
+                        player.hcx += HYPOTENUSE * player.sprinting
                         player.hcy -= 0.879 * player.sprinting
-                        camera_follow.cam_cx += 2.121 * player.sprinting
+                        camera_follow.cam_cx += HYPOTENUSE * player.sprinting
                         camera_follow.cam_cy -= 0.879 * player.sprinting
-                        player.wcx += 2.121 * player.sprinting
+                        player.wcx += HYPOTENUSE * player.sprinting
                         player.wcy -= 0.879 * player.sprinting
 
             if keys[pygame.K_a] and player.left_walkable and player.downleft_walkable and player.upleft_walkable:
@@ -1023,6 +1037,7 @@ while running:
 
         bullet_system.clean_shot()
         main_menu = player.update_health()
+        health_bar.draw()
 
         for enemy in enemies:
             enemy.evaluate_health()
