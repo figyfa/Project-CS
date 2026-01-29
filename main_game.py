@@ -14,7 +14,7 @@ screen = pygame.display.set_mode((1500, 900))
 
 running = True
 
-debugging = False
+debugging = True
 
 FPS = 60
 fpsClock = pygame.time.Clock()
@@ -71,7 +71,7 @@ class Tree:
         self.wcy = wcy
         self.cx = wcx
         self.cy = wcy
-        self.radius = 25
+        self.radius = 20
 
     def draw(self):
         pygame.draw.rect(screen,(150,75,0),(self.cx-18,self.cy-93,36,115))
@@ -636,45 +636,6 @@ class GameWorld:
         self.keys = pygame.key.get_pressed()
         self.player = player
 
-    def move_camera(self,direction):
-        for item in self.objects:
-            if len(direction) == 1:
-                if "down" in direction:
-                    item.cy = item.cy - 3 * player.sprinting
-
-
-                if "up" in direction:
-                    item.cy = item.cy + 3 * player.sprinting
-
-
-                if "left" in direction:
-                    item.cx = item.cx + 3 * player.sprinting
-
-                if "right" in direction:
-                    item.cx = item.cx - 3 * player.sprinting
-
-            else:
-                if "down" in direction and "left" in direction:
-                    item.cy = item.cy - HYPOTENUSE * player.sprinting
-                    item.cx = item.cx + HYPOTENUSE * player.sprinting
-
-
-                if "up" in direction and "left" in direction:
-                    item.cy = item.cy + HYPOTENUSE * player.sprinting
-                    item.cx = item.cx + HYPOTENUSE * player.sprinting
-
-
-                if "right" in direction and "down" in direction:
-                    item.cx = item.cx - HYPOTENUSE * player.sprinting
-                    item.cy = item.cy - HYPOTENUSE * player.sprinting
-
-                if "right" in direction and "up" in direction:
-                    item.cx = item.cx - HYPOTENUSE * player.sprinting
-                    item.cy = item.cy + HYPOTENUSE * player.sprinting
-
-
-
-
 island = Island((0, 255, 60,50),1000,750,450)
 
 enemy_id = 0
@@ -705,7 +666,7 @@ my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
 viruses = []
-for i in range(0): # How many viruses
+for i in range(5): # How many viruses
     viruses.append(Virus(enemy_id))
     enemy_id += 1
 main_menu = True
@@ -992,7 +953,7 @@ while running:
                     player.hcx -= 3 * player.sprinting
                     camera_follow.cam_cx -= 3 * player.sprinting
                     player.wcx -= 3 * player.sprinting
-                    #print("moving left")
+                    print("moving left")
 
             if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
                 if move_ticker == 0:
@@ -1000,7 +961,7 @@ while running:
                     player.hcx += 3 * player.sprinting
                     camera_follow.cam_cx += 3 * player.sprinting
                     player.wcx += 3 * player.sprinting
-                    #print("moving right")
+                    print("moving right")
 
 
         player.walking_spot_permissions = [True for i in range(8)]
