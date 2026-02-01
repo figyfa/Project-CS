@@ -177,6 +177,129 @@ class Player:
         self.downright_walkable = self.walking_spot_permissions[6]
         self.upright_walkable = self.walking_spot_permissions[7]
 
+    def move_up(self,in_camera):
+        if in_camera:
+            move_ticker = 10
+            self.hcy -= 3 * self.sprinting
+            self.cy = self.hcy
+            self.wcy -= 3 * self.sprinting
+            # print("Moving up",self.cx,self.cy)
+            return move_ticker
+        else:
+            move_ticker = 10
+            self.hcy -= 3 * self.sprinting
+            camera_follow.cam_cy -= 3 * self.sprinting
+            self.wcy -= 3 * self.sprinting
+            # print("Moving up",self.cx,self.cy)
+            return move_ticker
+    def move_up_and_right(self,in_camera):
+        if in_camera:
+            self.hcx += HYPOTENUSE * self.sprinting
+            self.hcy += 0.879 * self.sprinting
+            self.cx = self.hcx
+            self.wcx += HYPOTENUSE * self.sprinting
+            self.wcy += 0.879 * self.sprinting
+            # print("Moving up and right")
+        else:
+            self.hcx += HYPOTENUSE * self.sprinting
+            self.hcy += 0.879 * self.sprinting
+            camera_follow.cam_cx += HYPOTENUSE * self.sprinting
+            camera_follow.cam_cy += 0.879 * self.sprinting
+            self.wcx += HYPOTENUSE * self.sprinting
+            self.wcy += 0.879 * self.sprinting
+            # print("Moving up and right")
+    def move_up_and_left(self,in_camera):
+        if in_camera:
+            self.hcx -= HYPOTENUSE * self.sprinting
+            self.hcy += 0.879 * self.sprinting
+            self.cx = self.hcx
+            self.wcx -= HYPOTENUSE * self.sprinting
+            self.wcy += 0.879 * self.sprinting
+            # print("Moving up and left")
+        else:
+            self.hcx -= HYPOTENUSE * self.sprinting
+            self.hcy += 0.879 * self.sprinting
+            camera_follow.cam_cx -= HYPOTENUSE * self.sprinting
+            camera_follow.cam_cy += 0.879 * self.sprinting
+            self.wcx -= HYPOTENUSE * self.sprinting
+            self.wcy += 0.879 * self.sprinting
+            # print("Moving up and left")
+    def move_down(self,in_camera):
+        if in_camera:
+            move_ticker = 10
+            self.hcy += 3 * self.sprinting
+            self.cy = self.hcy
+            self.wcy += 3 * self.sprinting
+            return move_ticker
+        else:
+            move_ticker = 10
+            self.hcy += 3 * self.sprinting
+            camera_follow.cam_cy += 3 * self.sprinting
+            self.wcy += 3 * self.sprinting
+            # print("Moving down")
+            return move_ticker
+    def move_down_and_left(self,in_camera):
+        if in_camera:
+            self.hcx -= HYPOTENUSE * self.sprinting
+            self.hcy -= 0.879 * self.sprinting
+            self.cx = self.hcx
+            self.wcx -= HYPOTENUSE * self.sprinting
+            self.wcy -= 0.879 * self.sprinting
+            # print("Moving down and left")
+        else:
+            self.hcx -= HYPOTENUSE * self.sprinting
+            self.hcy -= 0.879 * self.sprinting
+            camera_follow.cam_cx -= HYPOTENUSE * self.sprinting
+            camera_follow.cam_cy -= 0.879 * self.sprinting
+            self.wcx -= HYPOTENUSE * self.sprinting
+            self.wcy -= 0.879 * self.sprinting
+            # print("Moving left and down")
+    def move_down_and_right(self,in_camera):
+        if in_camera:
+            # print("Moving down and right")
+            self.hcx += HYPOTENUSE * self.sprinting
+            self.hcy -= 0.879 * self.sprinting
+            self.cx = self.hcx
+            self.wcx += HYPOTENUSE * self.sprinting
+            self.wcy -= 0.879 * self.sprinting
+        else:
+            # print("Moving down and right")
+            self.hcx += HYPOTENUSE * self.sprinting
+            self.hcy -= 0.879 * self.sprinting
+            camera_follow.cam_cx += HYPOTENUSE * self.sprinting
+            camera_follow.cam_cy -= 0.879 * self.sprinting
+            self.wcx += HYPOTENUSE * self.sprinting
+            self.wcy -= 0.879 * self.sprinting
+    def move_left(self,in_camera):
+        if in_camera:
+            move_ticker = 10
+            self.hcx -= 3 * self.sprinting
+            self.cx = self.hcx
+            self.wcx -= 3 * self.sprinting
+            # print("moving left")
+            return move_ticker
+        else:
+            move_ticker = 10
+            self.hcx -= 3 * self.sprinting
+            camera_follow.cam_cx -= 3 * self.sprinting
+            self.wcx -= 3 * self.sprinting
+            #print("moving left")
+            return move_ticker
+    def move_right(self,in_camera):
+        if in_camera:
+            move_ticker = 10
+            self.hcx += 3 * self.sprinting
+            self.cx = self.hcx
+            self.wcx += 3 * self.sprinting
+            # print("moving right")
+            return move_ticker
+        else:
+            move_ticker = 10
+            self.hcx += 3 * self.sprinting
+            camera_follow.cam_cx += 3 * self.sprinting
+            self.wcx += 3 * self.sprinting
+            print("moving right")
+            return move_ticker
     def decelerate(self):
         if self.vx < 0:
             self.vx += 0.1
@@ -187,7 +310,7 @@ class Player:
         elif self.vy < 0:
             self.vy += 0.1
     def draw(self):
-        pygame.draw.circle(screen, self.colour, (self.wcx-camera_follow.cam_cx, self.wcy-camera_follow.cam_cy),self.radius)
+        pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
         if debugging:
             pygame.draw.circle(screen,(34,123,35),self.left,self.collision_radius)
             pygame.draw.circle(screen,(34,123,35),self.up,self.collision_radius)
@@ -752,7 +875,7 @@ while running:
             if not enemy.sword_stunned:
                 enemy.beeline(player)
             else:
-                enemy.beeline(enemy.sword_target) # Composition 500IQ play
+                enemy.beeline(enemy.sword_target) # Composition
                 enemy.recover_from_sword()
         keys = pygame.key.get_pressed()
         world.keys = pygame.key.get_pressed()
@@ -837,131 +960,33 @@ while running:
 
         player.check_walkable(trees)
 
-        if player.in_camera:
-            if keys[pygame.K_w] and player.up_walkable and player.upright_walkable and player.upleft_walkable:
-                if move_ticker == 0:
-                    move_ticker = 10
-                    player.hcy -= 3 * player.sprinting
-                    player.cy = player.hcy
-                    player.wcy -= 3 * player.sprinting
-                    #print("Moving up",player.cx,player.cy)
-                    if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                        player.hcx -= HYPOTENUSE * player.sprinting
-                        player.hcy += 0.879 * player.sprinting
-                        player.cx = player.hcx
-                        player.wcx -= HYPOTENUSE * player.sprinting
-                        player.wcy += 0.879 * player.sprinting
-                        #print("Moving up and left")
-                    if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                        player.hcx += HYPOTENUSE * player.sprinting
-                        player.hcy += 0.879 * player.sprinting
-                        player.cx = player.hcx
-                        player.wcx += HYPOTENUSE * player.sprinting
-                        player.wcy += 0.879 * player.sprinting
-                        #print("Moving up and right")
+        if keys[pygame.K_w] and player.up_walkable and player.upright_walkable and player.upleft_walkable:
+            if move_ticker == 0:
+                move_ticker = player.move_up(player.in_camera)
 
-            if keys[pygame.K_s] and player.down_walkable and player.downleft_walkable and player.downright_walkable:
-                if move_ticker == 0:
-                    move_ticker = 10
-                    player.hcy += 3 * player.sprinting
-                    player.cy = player.hcy
-                    player.wcy += 3 * player.sprinting
-                    #print("Moving down")
-                    if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                        player.hcx -= HYPOTENUSE * player.sprinting
-                        player.hcy -= 0.879 * player.sprinting
-                        player.cx = player.hcx
-                        player.wcx -= HYPOTENUSE * player.sprinting
-                        player.wcy -= 0.879 * player.sprinting
-                        #print("Moving down and left")
-                    if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                        #print("Moving down and right")
-                        player.hcx += HYPOTENUSE * player.sprinting
-                        player.hcy -= 0.879 * player.sprinting
-                        player.cx = player.hcx
-                        player.wcx += HYPOTENUSE * player.sprinting
-                        player.wcy -= 0.879 * player.sprinting
+                if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
+                    player.move_up_and_left(player.in_camera)
+                if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
+                    player.move_up_and_right(player.in_camera)
 
-            if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                if move_ticker == 0:
-                    move_ticker = 10
-                    player.hcx -= 3 * player.sprinting
-                    player.cx = player.hcx
-                    player.wcx -= 3 * player.sprinting
-                    #print("moving left")
+        if keys[pygame.K_s] and player.down_walkable and player.downleft_walkable and player.downright_walkable:
+            if move_ticker == 0:
+                move_ticker = player.move_down(player.in_camera)
+                #print("Moving down")
+                if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
+                    player.move_down_and_left(player.in_camera)
+                if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
+                    player.move_down_and_right(player.in_camera)
 
-            if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                if move_ticker == 0:
-                    move_ticker = 10
-                    player.hcx += 3 * player.sprinting
-                    player.cx = player.hcx
-                    player.wcx += 3 * player.sprinting
-                    #print("moving right")
 
-        else:
-            if keys[pygame.K_w] and player.up_walkable and player.upleft_walkable and player.upright_walkable:
-                if move_ticker == 0:
-                    move_ticker = 10
-                    player.hcy -= 3 * player.sprinting
-                    camera_follow.cam_cy -= 3 * player.sprinting
-                    player.wcy -= 3 * player.sprinting
-                    #print("Moving up",player.cx,player.cy)
-                    if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                        player.hcx -= HYPOTENUSE * player.sprinting
-                        player.hcy += 0.879 * player.sprinting
-                        camera_follow.cam_cx -= HYPOTENUSE * player.sprinting
-                        camera_follow.cam_cy += 0.879 * player.sprinting
-                        player.wcx -= HYPOTENUSE * player.sprinting
-                        player.wcy += 0.879 * player.sprinting
-                        #print("Moving up and left")
-                    if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                        player.hcx += HYPOTENUSE * player.sprinting
-                        player.hcy += 0.879 * player.sprinting
-                        camera_follow.cam_cx += HYPOTENUSE * player.sprinting
-                        camera_follow.cam_cy += 0.879 * player.sprinting
-                        player.wcx += HYPOTENUSE * player.sprinting
-                        player.wcy += 0.879 * player.sprinting
-                        #print("Moving up and right")
+        if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
+            if move_ticker == 0:
+                move_ticker = player.move_left(player.in_camera)
 
-            if keys[pygame.K_s] and player.down_walkable and player.downright_walkable and player.downleft_walkable:
-                if move_ticker == 0:
-                    move_ticker = 10
-                    player.hcy += 3 * player.sprinting
-                    camera_follow.cam_cy += 3 * player.sprinting
-                    player.wcy += 3 * player.sprinting
-                    #print("Moving down")
-                    if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                        player.hcx -= HYPOTENUSE * player.sprinting
-                        player.hcy -= 0.879 * player.sprinting
-                        camera_follow.cam_cx -= HYPOTENUSE * player.sprinting
-                        camera_follow.cam_cy -= 0.879 * player.sprinting
-                        player.wcx -= HYPOTENUSE * player.sprinting
-                        player.wcy -= 0.879 * player.sprinting
-                        #print("Moving left and down")
-                    if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                        #print("Moving down and right")
-                        player.hcx += HYPOTENUSE * player.sprinting
-                        player.hcy -= 0.879 * player.sprinting
-                        camera_follow.cam_cx += HYPOTENUSE * player.sprinting
-                        camera_follow.cam_cy -= 0.879 * player.sprinting
-                        player.wcx += HYPOTENUSE * player.sprinting
-                        player.wcy -= 0.879 * player.sprinting
+        if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
+            if move_ticker == 0:
+                move_ticker = player.move_right(player.in_camera)
 
-            if keys[pygame.K_a] and player.left_walkable and player.downleft_walkable and player.upleft_walkable:
-                if move_ticker == 0:
-                    move_ticker = 10
-                    player.hcx -= 3 * player.sprinting
-                    camera_follow.cam_cx -= 3 * player.sprinting
-                    player.wcx -= 3 * player.sprinting
-                    print("moving left")
-
-            if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                if move_ticker == 0:
-                    move_ticker = 10
-                    player.hcx += 3 * player.sprinting
-                    camera_follow.cam_cx += 3 * player.sprinting
-                    player.wcx += 3 * player.sprinting
-                    print("moving right")
 
 
         player.walking_spot_permissions = [True for i in range(8)]
@@ -970,9 +995,13 @@ while running:
             item.cx = item.wcx - camera_follow.cam_cx
             item.cy = item.wcy - camera_follow.cam_cy
 
+        '''
         if frames % 20 == 0:
             player.hcx = player.wcx - camera_follow.cam_cx
             player.hcy = player.wcy - camera_follow.cam_cy
+            print(player.wcx)
+            print(camera_follow.cam_cx)
+            '''
 
         if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
             #player.decelerate()
