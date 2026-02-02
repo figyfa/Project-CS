@@ -3,6 +3,8 @@ import math
 import random
 import socket
 
+MOVE_COUNTER = 10
+
 HYPOTENUSE = 2.121
 
 IP = "127.0.0.1"
@@ -179,125 +181,125 @@ class Player:
 
     def move_up(self,in_camera):
         if in_camera:
-            move_ticker = 10
-            self.hcy -= 3 * self.sprinting
-            self.cy = self.hcy
-            self.wcy -= 3 * self.sprinting
+            move_ticker = MOVE_COUNTER
+            self.hcy -= self.vy * self.sprinting
+            #self.cy = self.hcy
+            self.wcy -= self.vy * self.sprinting
             # print("Moving up",self.cx,self.cy)
             return move_ticker
         else:
-            move_ticker = 10
-            self.hcy -= 3 * self.sprinting
-            camera_follow.cam_cy -= 3 * self.sprinting
-            self.wcy -= 3 * self.sprinting
+            move_ticker = MOVE_COUNTER
+            self.hcy -= self.vy * 10
+            camera_follow.cam_cy -= self.vy * self.sprinting
+            self.wcy -= self.vy * self.sprinting
             # print("Moving up",self.cx,self.cy)
             return move_ticker
     def move_up_and_right(self,in_camera):
         if in_camera:
             self.hcx += HYPOTENUSE * self.sprinting
-            self.hcy += 0.879 * self.sprinting
-            self.cx = self.hcx
+            self.hcy += (self.vy - HYPOTENUSE) * self.sprinting
+            #self.cx = self.hcx
             self.wcx += HYPOTENUSE * self.sprinting
-            self.wcy += 0.879 * self.sprinting
+            self.wcy += (self.vy - HYPOTENUSE) * self.sprinting
             # print("Moving up and right")
         else:
-            self.hcx += HYPOTENUSE * self.sprinting
-            self.hcy += 0.879 * self.sprinting
+            self.hcx += HYPOTENUSE * 10
+            self.hcy += (self.vy - HYPOTENUSE) * 10
             camera_follow.cam_cx += HYPOTENUSE * self.sprinting
-            camera_follow.cam_cy += 0.879 * self.sprinting
+            camera_follow.cam_cy += (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx += HYPOTENUSE * self.sprinting
-            self.wcy += 0.879 * self.sprinting
+            self.wcy += (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving up and right")
     def move_up_and_left(self,in_camera):
         if in_camera:
             self.hcx -= HYPOTENUSE * self.sprinting
-            self.hcy += 0.879 * self.sprinting
-            self.cx = self.hcx
+            self.hcy += (self.vy-HYPOTENUSE) * self.sprinting
+            #self.cx = self.hcx
             self.wcx -= HYPOTENUSE * self.sprinting
-            self.wcy += 0.879 * self.sprinting
+            self.wcy += (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving up and left")
         else:
-            self.hcx -= HYPOTENUSE * self.sprinting
-            self.hcy += 0.879 * self.sprinting
+            self.hcx -= HYPOTENUSE * 10
+            self.hcy += (self.vy-HYPOTENUSE) * 10
             camera_follow.cam_cx -= HYPOTENUSE * self.sprinting
-            camera_follow.cam_cy += 0.879 * self.sprinting
+            camera_follow.cam_cy += (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx -= HYPOTENUSE * self.sprinting
-            self.wcy += 0.879 * self.sprinting
+            self.wcy += (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving up and left")
     def move_down(self,in_camera):
         if in_camera:
-            move_ticker = 10
-            self.hcy += 3 * self.sprinting
-            self.cy = self.hcy
-            self.wcy += 3 * self.sprinting
+            move_ticker = MOVE_COUNTER
+            self.hcy += self.vy * self.sprinting
+            #self.cy = self.hcy
+            self.wcy += self.vy * self.sprinting
             return move_ticker
         else:
-            move_ticker = 10
-            self.hcy += 3 * self.sprinting
-            camera_follow.cam_cy += 3 * self.sprinting
-            self.wcy += 3 * self.sprinting
+            move_ticker = MOVE_COUNTER
+            self.hcy += self.vy * 10
+            camera_follow.cam_cy += self.vy * self.sprinting
+            self.wcy += self.vy * self.sprinting
             # print("Moving down")
             return move_ticker
     def move_down_and_left(self,in_camera):
         if in_camera:
             self.hcx -= HYPOTENUSE * self.sprinting
-            self.hcy -= 0.879 * self.sprinting
-            self.cx = self.hcx
+            self.hcy -= (self.vy-HYPOTENUSE) * self.sprinting
+            #self.cx = self.hcx
             self.wcx -= HYPOTENUSE * self.sprinting
-            self.wcy -= 0.879 * self.sprinting
+            self.wcy -= (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving down and left")
         else:
-            self.hcx -= HYPOTENUSE * self.sprinting
-            self.hcy -= 0.879 * self.sprinting
+            self.hcx -= HYPOTENUSE * 10
+            self.hcy -= (self.vy-HYPOTENUSE) * 10
             camera_follow.cam_cx -= HYPOTENUSE * self.sprinting
-            camera_follow.cam_cy -= 0.879 * self.sprinting
+            camera_follow.cam_cy -= (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx -= HYPOTENUSE * self.sprinting
-            self.wcy -= 0.879 * self.sprinting
+            self.wcy -= (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving left and down")
     def move_down_and_right(self,in_camera):
         if in_camera:
             # print("Moving down and right")
             self.hcx += HYPOTENUSE * self.sprinting
-            self.hcy -= 0.879 * self.sprinting
-            self.cx = self.hcx
+            self.hcy -= (self.vy-HYPOTENUSE) * self.sprinting
+            #self.cx = self.hcx
             self.wcx += HYPOTENUSE * self.sprinting
-            self.wcy -= 0.879 * self.sprinting
+            self.wcy -= (self.vy-HYPOTENUSE) * self.sprinting
         else:
             # print("Moving down and right")
-            self.hcx += HYPOTENUSE * self.sprinting
-            self.hcy -= 0.879 * self.sprinting
+            self.hcx += HYPOTENUSE * 10
+            self.hcy -= (self.vy-HYPOTENUSE) * 10
             camera_follow.cam_cx += HYPOTENUSE * self.sprinting
-            camera_follow.cam_cy -= 0.879 * self.sprinting
+            camera_follow.cam_cy -= (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx += HYPOTENUSE * self.sprinting
-            self.wcy -= 0.879 * self.sprinting
+            self.wcy -= (self.vy-HYPOTENUSE) * self.sprinting
     def move_left(self,in_camera):
         if in_camera:
-            move_ticker = 10
-            self.hcx -= 3 * self.sprinting
-            self.cx = self.hcx
-            self.wcx -= 3 * self.sprinting
+            move_ticker = MOVE_COUNTER
+            self.hcx -= self.vx * self.sprinting
+            #self.cx = self.hcx
+            self.wcx -= self.vx * self.sprinting
             # print("moving left")
             return move_ticker
         else:
-            move_ticker = 10
-            self.hcx -= 3 * self.sprinting
-            camera_follow.cam_cx -= 3 * self.sprinting
-            self.wcx -= 3 * self.sprinting
+            move_ticker = MOVE_COUNTER
+            self.hcx -= self.vx * 10
+            camera_follow.cam_cx -= self.vx * self.sprinting
+            self.wcx -= self.vx * self.sprinting
             #print("moving left")
             return move_ticker
     def move_right(self,in_camera):
         if in_camera:
-            move_ticker = 10
-            self.hcx += 3 * self.sprinting
-            self.cx = self.hcx
-            self.wcx += 3 * self.sprinting
+            move_ticker = MOVE_COUNTER
+            self.hcx += self.vx * 10
+            #self.cx = self.hcx
+            self.wcx += self.vx * self.sprinting
             # print("moving right")
             return move_ticker
         else:
-            move_ticker = 10
-            self.hcx += 3 * self.sprinting
-            camera_follow.cam_cx += 3 * self.sprinting
-            self.wcx += 3 * self.sprinting
+            move_ticker = MOVE_COUNTER
+            self.hcx += self.vx * 10
+            camera_follow.cam_cx += self.vx * self.sprinting
+            self.wcx += self.vx * self.sprinting
             print("moving right")
             return move_ticker
     def decelerate(self):
@@ -364,6 +366,12 @@ class Player:
                     enemy.health -= 5
         self.laser_trail = []
 
+    def update_position(self):
+        self.cx = self.wcx - camera_follow.cam_cx
+        self.cy = self.wcy - camera_follow.cam_cy
+        if self.in_camera:
+            self.hcx = self.cx
+            self.hcy = self.cy
 
 
 class Player2 (Player):
@@ -988,6 +996,7 @@ while running:
                 move_ticker = player.move_right(player.in_camera)
 
 
+        player.update_position()
 
         player.walking_spot_permissions = [True for i in range(8)]
 
