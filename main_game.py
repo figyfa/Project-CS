@@ -114,7 +114,7 @@ class Health_bar():
 
     def draw(self):
         pygame.draw.rect(screen,(0,0,0),(self.cx,self.cy,self.width,self.height))
-        pygame.draw.rect(screen,(255,0,0),(self.cx,self.cy,self.width-((1-player.health/100)*self.width),self.height))
+        pygame.draw.rect(screen,(255,0,0),(self.cx,self.cy,self.width-((1-world.player.health/100)*self.width),self.height))
 
 
 class Player:
@@ -513,8 +513,8 @@ class Enemy:
             #print(self.image_list)
         if self.health <= 0:
             self.can_move = 0
-            if self in enemies:
-                enemies.remove(self)
+            if self in world.enemies:
+                world.enemies.remove(self)
 
     def clean_up(self):
         self.got_hit_this_frame = False
@@ -578,8 +578,8 @@ class Virus(Enemy):
             self.colour =(self.colour[0],255 * (self.health / 100),self.colour[2])
         if self.health <= 0:
             self.can_move = 0
-            if self in enemies:
-                enemies.remove(self)
+            if self in world.enemies:
+                world.enemies.remove(self)
 
     def clone_if_can(self,enemies,enemy_id):
         if self.clone_cooldown <= 0:
@@ -632,10 +632,10 @@ class Grenade_v2:
         self.target = (0,0)
 
     def cook(self):
-        self.cx = player.cx
-        self.cy = player.cy
-        self.wcx = player.wcx
-        self.wcy = player.wcy
+        self.cx = world.player.cx
+        self.cy = world.player.cy
+        self.wcx = world.player.wcx
+        self.wcy = world.player.wcy
         print("cooking")
         self.detonation_time -= (1/FPS)
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.actual_radius)
@@ -669,8 +669,8 @@ class Grenade_v2:
             #print("Exploding while travelling")
             self.thrown = False
             self.explode()
-        for i in range(len(enemies)):
-            if calc_distance(self,enemies[i]) < -95 and player.health > 0:
+        for i in range(len(world.enemies)):
+            if calc_distance(self,world.enemies[i]) < -95 and player.health > 0:
                 self.thrown = False
                 #print("Exploding on collision")
                 self.explode()
@@ -690,11 +690,11 @@ class Grenade_v2:
         print("exploding")
         self.exploded = True
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy), self.radius)
-        for enemy in enemies:
+        for enemy in world.enemies:
             if calc_distance(self, enemy) < 0:
                 enemy.health = enemy.health - 30
-        if calc_distance(self, player) < 0:
-            player.health = player.health - 30
+        if calc_distance(self, world.player) < 0:
+            world.player.health = world.player.health - 30
 
 class Bullet_trail:
     def __init__(self):
@@ -770,14 +770,15 @@ class Bullet_trail:
 
 
 class GameWorld:
-    def __init__(self,player):
+    def __init__(self):
         self.objects = []
         self.keys = pygame.key.get_pressed()
-        self.player = player
+        self.player = Player(600,300)
         self.sword = Sword()
         self.island = Island((0, 255, 60,50),1000,750,450)
         self.enemies = []
         self.viruses = []
+        self.current_enemy_id = 0
 
     def handle_inputs(self):
         global running
@@ -787,50 +788,64 @@ class GameWorld:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    bullet_system.create_shot(player, pygame.mouse.get_pos(), 0.1)
-                    bullet_system.check_hit(enemies)
+                    bullet_system.create_shot(self.player, pygame.mouse.get_pos(), 0.1)
+                    bullet_system.check_hit(world.enemies)
                     # print(enemy.health)
                 if event.button == 3:
                     mouse_pos = pygame.mouse.get_pos()
 
-                    self.sword.xvector = mouse_pos[0] - player.cx
-                    self.sword.yvector = mouse_pos[1] - player.cy
+                    self.sword.xvector = mouse_pos[0] - self.player.cx
+                    self.sword.yvector = mouse_pos[1] - self.player.cy
 
                     magnitude = math.sqrt(self.sword.xvector ** 2 + self.sword.yvector ** 2)
 
                     self.sword.xvector = self.sword.xvector / magnitude
                     self.sword.yvector = self.sword.yvector / magnitude
 
-                    self.sword.cx = player.cx + (self.sword.xvector * 30)
-                    self.sword.cy = player.cy + (self.sword.yvector * 30)
-                    self.sword.wcx = player.wcx + (self.sword.xvector * 30)
-                    self.sword.wcy = player.wcy + (self.sword.yvector * 30)
+                    self.sword.cx = self.player.cx + (self.sword.xvector * 30)
+                    self.sword.cy = self.player.cy + (self.sword.yvector * 30)
+                    self.sword.wcx = self.player.wcx + (self.sword.xvector * 30)
+                    self.sword.wcy = self.player.wcy + (self.sword.yvector * 30)
 
                     self.sword.draw()
-                    self.sword.check_hit(enemies)
+                    self.sword.check_hit(world.enemies)
 
     def initialize_enemies(self):
-        pass
+        for i in range(3):  # How many enemies
+            self.enemies.append(Enemy(random.randint(0, 750), random.randint(0, 450), self.current_enemy_id))
+            self.current_enemy_id += 1
+
+        for i in range(5):  # How many viruses
+            self.viruses.append(Virus(self.current_enemy_id))
+            self.current_enemy_id += 1
+
+    def update_collision_hitboxes(self):
+        self.player.left = (self.player.cx - 25, self.player.cy)
+        self.player.up = (self.player.cx, self.player.cy - 25)
+        self.player.right = (self.player.cx + 25, self.player.cy)
+        self.player.down = (self.player.cx, self.player.cy + 25)
+        self.player.upleft = (self.player.cx - 18, self.player.cy - 18)
+        self.player.downright = (self.player.cx + 18, self.player.cy + 18)
+        self.player.downleft = (self.player.cx - 18, self.player.cy + 18)
+        self.player.upright = (self.player.cx + 18, self.player.cy - 18)
 
 
-
+world = GameWorld()
 enemy_id = 0
 
 camera_follow = BoundingBox()
 key_g_not_pressed = True
-player = Player(600,300)
+#player = Player(600,300)
 #player2 = Player2(600,300)
-players = [player] #,player2]
-world = GameWorld(player)
+players = [world.player] #,player2]
+
 world.objects.append(world.island)
 #world.objects.append(player2)
-enemies = []
+#enemies = []
 trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(15)] # How many trees
 for i in range(len(trees)):
     world.objects.append(trees[i])
-for i in range(3): # How many enemies
-    enemies.append(Enemy(random.randint(0,750),random.randint(0,450),enemy_id))
-    enemy_id += 1
+
 active_grenades = []
 
 health_bar = Health_bar()
@@ -844,14 +859,12 @@ text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
 
 world.initialize_enemies()
 
-viruses = []
-for i in range(5): # How many viruses
-    viruses.append(Virus(enemy_id))
-    enemy_id += 1
+#viruses = []
+
 main_menu = True
-for virus in viruses:
-    enemies.append(virus)
-for enemy in enemies:
+for virus in world.viruses:
+    world.enemies.append(virus)
+for enemy in world.enemies:
     world.objects.append(enemy)
 bullet_system = Bullet_trail()
 frames = 0
@@ -926,15 +939,15 @@ while running:
 
         if debugging:
             camera_follow.draw()
-        player.draw()
+        world.player.draw()
         for tree in trees:
             tree.draw()
-        for enemy in enemies:
+        for enemy in world.enemies:
             enemy.draw()
             if debugging:
                 enemy.sword_target.draw()
             if not enemy.sword_stunned:
-                enemy.beeline(player)
+                enemy.beeline(world.player)
             else:
                 enemy.beeline(enemy.sword_target) # Composition
                 enemy.recover_from_sword()
@@ -968,12 +981,12 @@ while running:
             mouse_pos = (mouse_pos[0] + camera_follow.cam_cx, mouse_pos[1] + camera_follow.cam_cy)
             print("Key g just released")
             if active_grenades:
-                active_grenades[-1].throw(player,mouse_pos)
+                active_grenades[-1].throw(world.player,mouse_pos)
             key_g_not_pressed = True
 
         if keys[pygame.K_f]:
-            player.fire_laser()
-            player.check_laser_hit(enemies)
+            world.player.fire_laser()
+            world.player.check_laser_hit(world.enemies)
 
         #print(grenade.key_g_not_pressed)
         for grenade in active_grenades:
@@ -981,51 +994,51 @@ while running:
                 print("Grenade exploded")
                 active_grenades.remove(grenade)
             elif grenade.thrown:
-                grenade.throw(player,mouse_pos)
+                grenade.throw(world.player,mouse_pos)
 
 
         move_ticker = 0
         if len(bullet_system.bullet_trail) > 0:
-            bullet_system.draw(player)
+            bullet_system.draw(world.player)
 
         if keys[pygame.K_LSHIFT]:
-            player.sprinting = 2
+            world.player.sprinting = 2
         else:
-            player.sprinting = 1
+            world.player.sprinting = 1
 
-        player.check_walkable(trees)
+        world.player.check_walkable(trees)
 
-        if keys[pygame.K_w] and player.up_walkable and player.upright_walkable and player.upleft_walkable:
+        if keys[pygame.K_w] and world.player.up_walkable and world.player.upright_walkable and world.player.upleft_walkable:
             if move_ticker == 0:
-                move_ticker = player.move_up(player.in_camera)
+                move_ticker = world.player.move_up(world.player.in_camera)
 
-                if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                    player.move_up_and_left(player.in_camera)
-                if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                    player.move_up_and_right(player.in_camera)
+                if keys[pygame.K_a] and world.player.left_walkable and world.player.upleft_walkable and world.player.downleft_walkable:
+                    world.player.move_up_and_left(world.player.in_camera)
+                if keys[pygame.K_d] and world.player.right_walkable and world.player.upright_walkable and world.player.downright_walkable:
+                    world.player.move_up_and_right(world.player.in_camera)
 
-        if keys[pygame.K_s] and player.down_walkable and player.downleft_walkable and player.downright_walkable:
+        if keys[pygame.K_s] and world.player.down_walkable and world.player.downleft_walkable and world.player.downright_walkable:
             if move_ticker == 0:
-                move_ticker = player.move_down(player.in_camera)
+                move_ticker = world.player.move_down(world.player.in_camera)
                 #print("Moving down")
-                if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
-                    player.move_down_and_left(player.in_camera)
-                if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
-                    player.move_down_and_right(player.in_camera)
+                if keys[pygame.K_a] and world.player.left_walkable and world.player.upleft_walkable and world.player.downleft_walkable:
+                    world.player.move_down_and_left(world.player.in_camera)
+                if keys[pygame.K_d] and world.player.right_walkable and world.player.upright_walkable and world.player.downright_walkable:
+                    world.player.move_down_and_right(world.player.in_camera)
 
 
-        if keys[pygame.K_a] and player.left_walkable and player.upleft_walkable and player.downleft_walkable:
+        if keys[pygame.K_a] and world.player.left_walkable and world.player.upleft_walkable and world.player.downleft_walkable:
             if move_ticker == 0:
-                move_ticker = player.move_left(player.in_camera)
+                move_ticker = world.player.move_left(world.player.in_camera)
 
-        if keys[pygame.K_d] and player.right_walkable and player.upright_walkable and player.downright_walkable:
+        if keys[pygame.K_d] and world.player.right_walkable and world.player.upright_walkable and world.player.downright_walkable:
             if move_ticker == 0:
-                move_ticker = player.move_right(player.in_camera)
+                move_ticker = world.player.move_right(world.player.in_camera)
 
 
-        player.update_position()
+        world.player.update_position()
 
-        player.walking_spot_permissions = [True for i in range(8)]
+        world.player.walking_spot_permissions = [True for i in range(8)]
 
         for item in world.objects:
             item.cx = item.wcx - camera_follow.cam_cx
@@ -1033,14 +1046,14 @@ while running:
 
         '''
         if frames % 20 == 0:
-            player.hcx = player.wcx - camera_follow.cam_cx
-            player.hcy = player.wcy - camera_follow.cam_cy
-            print(player.wcx)
+            world.player.hcx = world.player.wcx - camera_follow.cam_cx
+            world.player.hcy = world.player.wcy - camera_follow.cam_cy
+            print(world.player.wcx)
             print(camera_follow.cam_cx)
             '''
 
         if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
-            #player.decelerate()
+            #world.player.decelerate()
             #print("decellerating")
             pass
 
@@ -1049,52 +1062,46 @@ while running:
 
         if debugging:
             if keys[pygame.K_UP]:
-                player.in_camera = False
+                world.player.in_camera = False
             if keys[pygame.K_h]:
-                player.cx = 600
-                player.cy = 300
-                player.hcx = 600
-                player.hcy = 300
-                player.wcx = 600
-                player.wcy = 300
+                world.player.cx = 600
+                world.player.cy = 300
+                world.player.hcx = 600
+                world.player.hcy = 300
+                world.player.wcx = 600
+                world.player.wcy = 300
                 camera_follow.cam_cx = 0
                 camera_follow.cam_cy = 0
-            pygame.draw.circle(screen,(255,50,255),(player.hcx,player.hcy),10)
+            pygame.draw.circle(screen,(255,50,255),(world.player.hcx,world.player.hcy),10)
 
         bullet_system.clean_shot()
-        main_menu = player.update_health()
+        main_menu = world.player.update_health()
         health_bar.draw()
 
-        for enemy in enemies:
+        for enemy in world.enemies:
             enemy.evaluate_health()
             enemy.clean_up()
-            enemy.scan_for_friendlies(enemies)
+            enemy.scan_for_friendlies(world.enemies)
             #print(enemy.health)
 
-        for virus in viruses:
+        for virus in world.viruses:
             if virus.health > 0:
-                enemy_id = virus.clone_if_can(enemies,enemy_id)
+                enemy_id = virus.clone_if_can(world.enemies,enemy_id)
                 virus.decrement_cooldown()
             virus.evaluate_health()
             virus.clean_up()
-            virus.scan_for_friendlies(enemies)
+            virus.scan_for_friendlies(world.enemies)
 
-        camera_follow.scan_for_player(player)
+        camera_follow.scan_for_player(world.player)
 
-        player.left = (player.cx - 25, player.cy)
-        player.up = (player.cx, player.cy - 25)
-        player.right = (player.cx + 25, player.cy)
-        player.down = (player.cx, player.cy + 25)
-        player.upleft = (player.cx-18,player.cy-18)
-        player.downright = (player.cx+18,player.cy+18)
-        player.downleft = (player.cx-18,player.cy+18)
-        player.upright = (player.cx+18,player.cy-18)
+        world.update_collision_hitboxes()
 
-        player.walking_spots = [player.left,player.right,player.down,player.up,player.upleft,player.downleft,player.downright,player.upright]
 
-        if not player.in_camera:
-            player.hcx = player.cx
-            player.hcy = player.cy
+        world.player.walking_spots = [world.player.left,world.player.right,world.player.down,world.player.up,world.player.upleft,world.player.downleft,world.player.downright,world.player.upright]
+
+        if not world.player.in_camera:
+            world.player.hcx = world.player.cx
+            world.player.hcy = world.player.cy
 
         if 1 == 1: #some high level logic right here (you need a computer science degree to understand)
             bullet_system.decrement_cooldown(0.1)
