@@ -64,7 +64,7 @@ class Sword:
     def check_hit(self,enemies):
         for enemy in enemies:
             if calc_distance(enemy,self) <= 0:
-                enemy.take_damage_from_sword(sword.xvector,sword.yvector)
+                enemy.take_damage_from_sword(world.sword.xvector,world.sword.yvector)
                 enemy.sword_stunned = True
 
 class Tree:
@@ -100,8 +100,10 @@ class BoundingBox:
         if self.lx < player.hcx - 5 and player.hcx + 5 < (self.lx + self.width) and self.ty < player.hcy - 5 and (self.ty + self.height) > player.hcy:
             #print("player detected")
             player.in_camera = True
+            return True
         else:
             player.in_camera = False
+            return False
 
 class Health_bar():
     def __init__(self):
@@ -167,7 +169,7 @@ class Player:
                     #print(f"{self.walking_spots[j]} FOUND UNWALKABLE")
 
         for i in range(len(self.walking_spots)):
-            if calc_distance_circle_and_point(island,self.walking_spots[i]) >= self.collision_radius:
+            if calc_distance_circle_and_point(world.island,self.walking_spots[i]) >= self.collision_radius:
                 self.walking_spot_permissions[i] = False
 
         self.left_walkable = self.walking_spot_permissions[0]
@@ -236,6 +238,8 @@ class Player:
         else:
             move_ticker = MOVE_COUNTER
             self.hcy += self.vy * 10
+            if camera_follow.scan_for_player(self):
+                self.move_down(True)
             camera_follow.cam_cy += self.vy * self.sprinting
             self.wcy += self.vy * self.sprinting
             # print("Moving down")
@@ -298,6 +302,10 @@ class Player:
         else:
             move_ticker = MOVE_COUNTER
             self.hcx += self.vx * 10
+            check = camera_follow.scan_for_player(self)
+            print(check)
+            if check:
+                self.move_right(check)
             camera_follow.cam_cx += self.vx * self.sprinting
             self.wcx += self.vx * self.sprinting
             print("moving right")
@@ -766,8 +774,45 @@ class GameWorld:
         self.objects = []
         self.keys = pygame.key.get_pressed()
         self.player = player
+        self.sword = Sword()
+        self.island = Island((0, 255, 60,50),1000,750,450)
+        self.enemies = []
+        self.viruses = []
 
-island = Island((0, 255, 60,50),1000,750,450)
+    def handle_inputs(self):
+        global running
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    bullet_system.create_shot(player, pygame.mouse.get_pos(), 0.1)
+                    bullet_system.check_hit(enemies)
+                    # print(enemy.health)
+                if event.button == 3:
+                    mouse_pos = pygame.mouse.get_pos()
+
+                    self.sword.xvector = mouse_pos[0] - player.cx
+                    self.sword.yvector = mouse_pos[1] - player.cy
+
+                    magnitude = math.sqrt(self.sword.xvector ** 2 + self.sword.yvector ** 2)
+
+                    self.sword.xvector = self.sword.xvector / magnitude
+                    self.sword.yvector = self.sword.yvector / magnitude
+
+                    self.sword.cx = player.cx + (self.sword.xvector * 30)
+                    self.sword.cy = player.cy + (self.sword.yvector * 30)
+                    self.sword.wcx = player.wcx + (self.sword.xvector * 30)
+                    self.sword.wcy = player.wcy + (self.sword.yvector * 30)
+
+                    self.sword.draw()
+                    self.sword.check_hit(enemies)
+
+    def initialize_enemies(self):
+        pass
+
+
 
 enemy_id = 0
 
@@ -777,7 +822,7 @@ player = Player(600,300)
 #player2 = Player2(600,300)
 players = [player] #,player2]
 world = GameWorld(player)
-world.objects.append(island)
+world.objects.append(world.island)
 #world.objects.append(player2)
 enemies = []
 trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(15)] # How many trees
@@ -796,6 +841,9 @@ pygame.font.init()
 my_font = pygame.font.SysFont('Comic Sans MS', 30)
 
 text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
+
+world.initialize_enemies()
+
 viruses = []
 for i in range(5): # How many viruses
     viruses.append(Virus(enemy_id))
@@ -808,7 +856,7 @@ for enemy in enemies:
 bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
-sword = Sword()
+
 sword_xvector = 0
 sword_yvector = 0
 
@@ -832,6 +880,11 @@ except:
 
 #server_socket.setblocking(False)
 '''
+
+
+
+
+
 while running:
 
     if main_menu:
@@ -860,7 +913,7 @@ while running:
         #print(enemies)
 
         screen.fill((107, 191, 255))
-        island.draw()
+        world.island.draw()
         #player2.draw()
         #print("I GOT HERE GGS")
         '''
@@ -888,33 +941,7 @@ while running:
         keys = pygame.key.get_pressed()
         world.keys = pygame.key.get_pressed()
 
-        for event in pygame.event.get():
-
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    bullet_system.create_shot(player,pygame.mouse.get_pos(),0.1)
-                    bullet_system.check_hit(enemies)
-                    #print(enemy.health)
-                if event.button == 3:
-                    mouse_pos = pygame.mouse.get_pos()
-
-                    sword.xvector = mouse_pos[0] - player.cx
-                    sword.yvector = mouse_pos[1] - player.cy
-
-                    magnitude = math.sqrt(sword.xvector**2 + sword.yvector**2)
-
-                    sword.xvector = sword.xvector / magnitude
-                    sword.yvector = sword.yvector / magnitude
-
-                    sword.cx = player.cx + (sword.xvector*30)
-                    sword.cy = player.cy + (sword.yvector*30)
-                    sword.wcx = player.wcx + (sword.xvector*30)
-                    sword.wcy = player.wcy + (sword.yvector*30)
-
-                    sword.draw()
-                    sword.check_hit(enemies)
+        world.handle_inputs()
 
         if key_g_held_down and key_g_not_pressed:
             print("Created grenade")
