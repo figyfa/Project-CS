@@ -26,7 +26,7 @@ def calc_distance(pointA, pointB):
     return math.sqrt((pointA.wcx - pointB.wcx)**2 + (pointA.wcy - pointB.wcy)**2) - pointA.radius - pointB.radius
 
 def calc_distance_circle_and_point(pointA, pointB):
-    return math.sqrt((pointA.wcx - pointB[0]-camera_follow.cam_cx)**2 + (pointA.wcy - pointB[1] - camera_follow.cam_cy)**2) - pointA.radius
+    return math.sqrt((pointA.wcx - pointB[0]-world.camera_follow.cam_cx)**2 + (pointA.wcy - pointB[1] - world.camera_follow.cam_cy)**2) - pointA.radius
 
 class Island:
     def __init__(self,colour, radius, cx, cy):
@@ -192,7 +192,7 @@ class Player:
         else:
             move_ticker = MOVE_COUNTER
             self.hcy -= self.vy * 10
-            camera_follow.cam_cy -= self.vy * self.sprinting
+            world.camera_follow.cam_cy -= self.vy * self.sprinting
             self.wcy -= self.vy * self.sprinting
             # print("Moving up",self.cx,self.cy)
             return move_ticker
@@ -207,8 +207,8 @@ class Player:
         else:
             self.hcx += HYPOTENUSE * 10
             self.hcy += (self.vy - HYPOTENUSE) * 10
-            camera_follow.cam_cx += HYPOTENUSE * self.sprinting
-            camera_follow.cam_cy += (self.vy-HYPOTENUSE) * self.sprinting
+            world.camera_follow.cam_cx += HYPOTENUSE * self.sprinting
+            world.camera_follow.cam_cy += (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx += HYPOTENUSE * self.sprinting
             self.wcy += (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving up and right")
@@ -223,8 +223,8 @@ class Player:
         else:
             self.hcx -= HYPOTENUSE * 10
             self.hcy += (self.vy-HYPOTENUSE) * 10
-            camera_follow.cam_cx -= HYPOTENUSE * self.sprinting
-            camera_follow.cam_cy += (self.vy-HYPOTENUSE) * self.sprinting
+            world.camera_follow.cam_cx -= HYPOTENUSE * self.sprinting
+            world.camera_follow.cam_cy += (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx -= HYPOTENUSE * self.sprinting
             self.wcy += (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving up and left")
@@ -238,9 +238,9 @@ class Player:
         else:
             move_ticker = MOVE_COUNTER
             self.hcy += self.vy * 10
-            if camera_follow.scan_for_player(self):
+            if world.camera_follow.scan_for_player(self):
                 self.move_down(True)
-            camera_follow.cam_cy += self.vy * self.sprinting
+            world.camera_follow.cam_cy += self.vy * self.sprinting
             self.wcy += self.vy * self.sprinting
             # print("Moving down")
             return move_ticker
@@ -255,8 +255,8 @@ class Player:
         else:
             self.hcx -= HYPOTENUSE * 10
             self.hcy -= (self.vy-HYPOTENUSE) * 10
-            camera_follow.cam_cx -= HYPOTENUSE * self.sprinting
-            camera_follow.cam_cy -= (self.vy-HYPOTENUSE) * self.sprinting
+            world.camera_follow.cam_cx -= HYPOTENUSE * self.sprinting
+            world.camera_follow.cam_cy -= (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx -= HYPOTENUSE * self.sprinting
             self.wcy -= (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving left and down")
@@ -272,8 +272,8 @@ class Player:
             # print("Moving down and right")
             self.hcx += HYPOTENUSE * 10
             self.hcy -= (self.vy-HYPOTENUSE) * 10
-            camera_follow.cam_cx += HYPOTENUSE * self.sprinting
-            camera_follow.cam_cy -= (self.vy-HYPOTENUSE) * self.sprinting
+            world.camera_follow.cam_cx += HYPOTENUSE * self.sprinting
+            world.camera_follow.cam_cy -= (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx += HYPOTENUSE * self.sprinting
             self.wcy -= (self.vy-HYPOTENUSE) * self.sprinting
     def move_left(self,in_camera):
@@ -287,7 +287,7 @@ class Player:
         else:
             move_ticker = MOVE_COUNTER
             self.hcx -= self.vx * 10
-            camera_follow.cam_cx -= self.vx * self.sprinting
+            world.camera_follow.cam_cx -= self.vx * self.sprinting
             self.wcx -= self.vx * self.sprinting
             #print("moving left")
             return move_ticker
@@ -302,11 +302,11 @@ class Player:
         else:
             move_ticker = MOVE_COUNTER
             self.hcx += self.vx * 10
-            check = camera_follow.scan_for_player(self)
+            check = world.camera_follow.scan_for_player(self)
             print(check)
             if check:
                 self.move_right(check)
-            camera_follow.cam_cx += self.vx * self.sprinting
+            world.camera_follow.cam_cx += self.vx * self.sprinting
             self.wcx += self.vx * self.sprinting
             print("moving right")
             return move_ticker
@@ -340,7 +340,7 @@ class Player:
             return True
     def fire_laser(self):
         mouse_pos = pygame.mouse.get_pos()
-        mouse_pos = (mouse_pos[0] + camera_follow.cam_cx, mouse_pos[1] + camera_follow.cam_cy)
+        mouse_pos = (mouse_pos[0] + world.camera_follow.cam_cx, mouse_pos[1] + world.camera_follow.cam_cy)
         magnitude = math.sqrt((mouse_pos[0] - self.wcx)**2 + (mouse_pos[1] - self.wcy)**2)
         self.xstep = ((mouse_pos[0] - self.wcx)/magnitude) * 20
         self.ystep = ((mouse_pos[1] - self.wcy)/magnitude) * 20
@@ -360,23 +360,23 @@ class Player:
 
         if debugging:
             for circle in self.laser_trail:
-                pygame.draw.circle(screen, (123,123,123), (circle[0]-camera_follow.cam_cx,circle[1]-camera_follow.cam_cy),5)
+                pygame.draw.circle(screen, (123,123,123), (circle[0]-world.camera_follow.cam_cx,circle[1]-world.camera_follow.cam_cy),5)
         else:
-            pygame.draw.line(screen, (11, 3, 252), (self.cx,self.cy),(self.laser_trail[-1][0]-camera_follow.cam_cx,self.laser_trail[-1][1]-camera_follow.cam_cy),10)
+            pygame.draw.line(screen, (11, 3, 252), (self.cx,self.cy),(self.laser_trail[-1][0]-world.camera_follow.cam_cx,self.laser_trail[-1][1]-world.camera_follow.cam_cy),10)
 
 
 
     def check_laser_hit(self,enemies):
         for enemy in enemies:
             for circle in self.laser_trail:
-                circle = (circle[0]-camera_follow.cam_cx,circle[1]-camera_follow.cam_cy)
+                circle = (circle[0]-world.camera_follow.cam_cx,circle[1]-world.camera_follow.cam_cy)
                 if calc_distance_circle_and_point(enemy,circle) < 0:
                     enemy.health -= 5
         self.laser_trail = []
 
     def update_position(self):
-        self.cx = self.wcx - camera_follow.cam_cx
-        self.cy = self.wcy - camera_follow.cam_cy
+        self.cx = self.wcx - world.camera_follow.cam_cx
+        self.cy = self.wcy - world.camera_follow.cam_cy
         if self.in_camera:
             self.hcx = self.cx
             self.hcy = self.cy
@@ -432,8 +432,8 @@ class Player2 (Player):
 
 
     def rectify(self):
-        self.cx = self.wcx - camera_follow.cam_cx
-        self.cy = self.wcy - camera_follow.cam_cy
+        self.cx = self.wcx - world.camera_follow.cam_cx
+        self.cy = self.wcy - world.camera_follow.cam_cy
 
         print(f"Original data: {self.wcx},{self.wcy}")
         print(f"Rectified data {self.cx} {self.cy}")
@@ -499,9 +499,9 @@ class Enemy:
 
     def recover_from_sword(self):
         if self.initialised == False:
-            self.current_time = seconds + 0.5
+            self.current_time = world.seconds + 0.5
             self.initialised = True
-        if seconds > self.current_time:
+        if world.seconds > self.current_time:
             self.initialised = False
             self.sword_stunned = False
 
@@ -533,13 +533,14 @@ class Enemy:
     def beeline(self,player):
         angle = math.pi
 
-        if player.cx - enemy.cx != 0:
-            angle = math.atan((player.cy - enemy.cy)/(player.cx - enemy.cx))
+        if player.cx - self.cx != 0:
+            angle = math.atan((player.cy - self.cy)/(player.cx - self.cx))
+
         #print(angle/math.pi*180)
         self.vx = -3 * math.cos(angle)
         self.vy = -3 * math.sin(angle)
 
-        if enemy.cx > player.cx:
+        if self.cx > player.cx:
             self.wcx += self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
             self.wcy += self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
         else:
@@ -547,9 +548,9 @@ class Enemy:
             self.wcy -= self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
 
         if calc_distance(self,player) < 10 and self.health > 0:
-            if seconds > (self.last_hit_time + 0.7):
+            if world.seconds > (self.last_hit_time + 0.7):
                 player.health -= 2
-                self.last_hit_time = seconds
+                self.last_hit_time = world.seconds
                 #print("player hit")
         '''
         if calc_distance(self,player2) < 10 and self.health > 0:
@@ -643,7 +644,7 @@ class Grenade_v2:
             print("Exploding in hand")
             self.explode()
 
-    def throw(self,player,target):
+    def throw(self,player,target=(0,0)):
         if not self.thrown:
             self.wcx = player.wcx
             self.wcy = player.wcy
@@ -658,7 +659,7 @@ class Grenade_v2:
 
             self.target = (target[0],target[1])
 
-        print("throwing")
+        print("throwing",self.thrown)
         pygame.draw.circle(screen, self.colour, (self.cx,self.cy),self.actual_radius)
         self.dy = self.dy * 0.99
         self.dx = self.dx * 0.99
@@ -674,8 +675,8 @@ class Grenade_v2:
                 self.thrown = False
                 #print("Exploding on collision")
                 self.explode()
-        for i in range(len(trees)):
-            if calc_distance(self,trees[i]) < -95 and player.health > 0:
+        for i in range(len(world.trees)):
+            if calc_distance(self,world.trees[i]) < -95 and player.health > 0:
                 self.thrown = False
                 self.explode()
 
@@ -685,6 +686,8 @@ class Grenade_v2:
         self.cy += self.dy
 
         self.pos = (self.wcx,self.wcy)
+
+        return target
 
     def explode(self):
         print("exploding")
@@ -725,8 +728,8 @@ class Bullet_trail:
                     self.deadly_bullet = self.bullet_trail[index]
                     got_hit_this_frame = True
 
-            for i in range(len(trees)-1,-1,-1):
-                if calc_distance_circle_and_point(trees[i],self.bullet_trail[index]) <= 0:
+            for i in range(len(world.trees)-1,-1,-1):
+                if calc_distance_circle_and_point(world.trees[i],self.bullet_trail[index]) <= 0:
                     found=True
                     self.deadly_bullet = self.bullet_trail[index]
                     got_hit_this_frame = True
@@ -779,6 +782,17 @@ class GameWorld:
         self.enemies = []
         self.viruses = []
         self.current_enemy_id = 0
+        self.trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(15)] # How many trees
+        self.key_g_held_down = False
+        self.key_g_not_pressed = True
+        self.active_grenades = []
+        self.camera_follow = BoundingBox()
+        self.health_bar = Health_bar()
+        self.players = [self.player]
+        self.frames = 0
+        self.seconds = 0
+        self.text_surface = None
+        self.bullet_system = Bullet_trail()
 
     def handle_inputs(self):
         global running
@@ -788,8 +802,8 @@ class GameWorld:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    bullet_system.create_shot(self.player, pygame.mouse.get_pos(), 0.1)
-                    bullet_system.check_hit(world.enemies)
+                    self.bullet_system.create_shot(self.player, pygame.mouse.get_pos(), 0.1)
+                    self.bullet_system.check_hit(self.enemies)
                     # print(enemy.health)
                 if event.button == 3:
                     mouse_pos = pygame.mouse.get_pos()
@@ -808,14 +822,20 @@ class GameWorld:
                     self.sword.wcy = self.player.wcy + (self.sword.yvector * 30)
 
                     self.sword.draw()
-                    self.sword.check_hit(world.enemies)
+                    self.sword.check_hit(self.enemies)
 
-    def initialize_enemies(self):
-        for i in range(3):  # How many enemies
+        self.key_g_held_down,self.key_g_not_pressed = self.handle_grenade_logic(self.key_g_held_down, self.key_g_not_pressed)
+
+        self.handle_laser_inputs()
+
+        self.handle_movement() # Handles player movement
+
+    def initialize_enemies(self,enemy_count,virus_count):
+        for i in range(enemy_count):  # How many enemies
             self.enemies.append(Enemy(random.randint(0, 750), random.randint(0, 450), self.current_enemy_id))
             self.current_enemy_id += 1
 
-        for i in range(5):  # How many viruses
+        for i in range(virus_count):  # How many viruses
             self.viruses.append(Virus(self.current_enemy_id))
             self.current_enemy_id += 1
 
@@ -829,283 +849,228 @@ class GameWorld:
         self.player.downleft = (self.player.cx - 18, self.player.cy + 18)
         self.player.upright = (self.player.cx + 18, self.player.cy - 18)
 
-
-world = GameWorld()
-enemy_id = 0
-
-camera_follow = BoundingBox()
-key_g_not_pressed = True
-#player = Player(600,300)
-#player2 = Player2(600,300)
-players = [world.player] #,player2]
-
-world.objects.append(world.island)
-#world.objects.append(player2)
-#enemies = []
-trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(15)] # How many trees
-for i in range(len(trees)):
-    world.objects.append(trees[i])
-
-active_grenades = []
-
-health_bar = Health_bar()
-
-singleplayer = True
-
-pygame.font.init()
-my_font = pygame.font.SysFont('Comic Sans MS', 30)
-
-text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
-
-world.initialize_enemies()
-
-#viruses = []
-
-main_menu = True
-for virus in world.viruses:
-    world.enemies.append(virus)
-for enemy in world.enemies:
-    world.objects.append(enemy)
-bullet_system = Bullet_trail()
-frames = 0
-key_g_held_down = False
-
-sword_xvector = 0
-sword_yvector = 0
-
-'''
-#server_socket.listen()
-print("server on")
-#(proxy_socket, proxy_address) = server_socket.accept()
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind((IP,PORT))
-
-
-server_socket.settimeout(10)
-print("Time out set")
-server_socket.listen()
-
-try:
-    (proxy_socket, proxy_address) = server_socket.accept()
-except:
-    print("Connection timed out, starting singleplayer")
-    singleplayer = True
-
-#server_socket.setblocking(False)
-'''
-
-
-
-
-
-while running:
-
-    if main_menu:
+    def display_menu(self, running, main_menu):
         print("Main Menu")
-        menu_screen = pygame.Surface((1500,900))
-        menu_screen.fill((255,255,45))
-        screen.blit(menu_screen,(0,0))
-        screen.blit(text_surface, (750, 450))
-
+        menu_screen = pygame.Surface((1500, 900))
+        menu_screen.fill((255, 255, 45))
+        screen.blit(menu_screen, (0, 0))
+        screen.blit(self.text_surface, (750, 450))
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 main_menu = False
+
         pygame.display.flip()
-    else:
-        #print(camera_follow.cam_cx)
-        #print(camera_follow.cam_cy)
+        return running,main_menu
 
-        frames = frames + 1
-        seconds = frames / FPS
-        #print(seconds)
-        #print(fpsClock)
-
-        #print(enemies)
-
+    def draw_island_and_background(self):
         screen.fill((107, 191, 255))
-        world.island.draw()
-        #player2.draw()
-        #print("I GOT HERE GGS")
-        '''
-        if frames % 1 == 0 and not singleplayer:
-            singleplayer = player2.recv_and_send_data()
-            #print("data sent")
-            player2.rectify()
-        '''
+        self.island.draw()
 
-
+    def draw_enemies_player_and_trees(self):
         if debugging:
-            camera_follow.draw()
-        world.player.draw()
-        for tree in trees:
+            self.camera_follow.draw()
+        self.player.draw()
+        for tree in self.trees:
             tree.draw()
-        for enemy in world.enemies:
+        for enemy in self.enemies:
             enemy.draw()
+
+    def handle_sword_logic(self):
+        for enemy in self.enemies:
             if debugging:
                 enemy.sword_target.draw()
             if not enemy.sword_stunned:
-                enemy.beeline(world.player)
+                enemy.beeline(self.player)
             else:
-                enemy.beeline(enemy.sword_target) # Composition
+                enemy.beeline(enemy.sword_target)  # Composition
                 enemy.recover_from_sword()
-        keys = pygame.key.get_pressed()
-        world.keys = pygame.key.get_pressed()
 
-        world.handle_inputs()
-
+    def handle_grenade_logic(self, key_g_held_down, key_g_not_pressed):
+        mouse_pos = (0,0)
         if key_g_held_down and key_g_not_pressed:
             print("Created grenade")
-            active_grenades.append(Grenade_v2())
-            world.objects.append(active_grenades[-1])
+            self.active_grenades.append(Grenade_v2())
+            self.objects.append(self.active_grenades[-1])
             key_g_not_pressed = False
-
-        if key_g_held_down and active_grenades:
+        if key_g_held_down and self.active_grenades:
             print("Grenade cooking")
-            active_grenades[-1].cook()
-
-        if keys[pygame.K_g]:
+            self.active_grenades[-1].cook()
+        if self.keys[pygame.K_g]:
             key_g_held_down = True
         else:
             key_g_held_down = False
-
-        #print(active_grenades)
-
-        #print(keys[pygame.K_g],grenade.key_g_not_pressed)
-
-
         if not key_g_held_down and key_g_not_pressed == False:
             mouse_pos = pygame.mouse.get_pos()
-            mouse_pos = (mouse_pos[0] + camera_follow.cam_cx, mouse_pos[1] + camera_follow.cam_cy)
+            mouse_pos = (mouse_pos[0] + self.camera_follow.cam_cx, mouse_pos[1] + self.camera_follow.cam_cy)
             print("Key g just released")
-            if active_grenades:
-                active_grenades[-1].throw(world.player,mouse_pos)
+            if self.active_grenades:
+                self.active_grenades[-1].throw(self.player, mouse_pos)
             key_g_not_pressed = True
 
-        if keys[pygame.K_f]:
-            world.player.fire_laser()
-            world.player.check_laser_hit(world.enemies)
-
-        #print(grenade.key_g_not_pressed)
-        for grenade in active_grenades:
+        for grenade in self.active_grenades:
             if grenade.exploded:
                 print("Grenade exploded")
-                active_grenades.remove(grenade)
+                self.active_grenades.remove(grenade)
             elif grenade.thrown:
-                grenade.throw(world.player,mouse_pos)
+                grenade.throw(self.player, mouse_pos)
 
+        return key_g_held_down, key_g_not_pressed
 
-        move_ticker = 0
-        if len(bullet_system.bullet_trail) > 0:
-            bullet_system.draw(world.player)
+    def handle_laser_inputs(self):
+        if self.keys[pygame.K_f]:
+            self.player.fire_laser()
+            self.player.check_laser_hit(self.enemies)
 
-        if keys[pygame.K_LSHIFT]:
-            world.player.sprinting = 2
+    def handle_movement(self):
+        if self.keys[pygame.K_LSHIFT]:
+            self.player.sprinting = 2
         else:
-            world.player.sprinting = 1
-
-        world.player.check_walkable(trees)
-
-        if keys[pygame.K_w] and world.player.up_walkable and world.player.upright_walkable and world.player.upleft_walkable:
+            self.player.sprinting = 1
+        self.player.check_walkable(self.trees)
+        move_ticker = 0
+        if self.keys[
+            pygame.K_w] and self.player.up_walkable and self.player.upright_walkable and self.player.upleft_walkable:
             if move_ticker == 0:
-                move_ticker = world.player.move_up(world.player.in_camera)
+                move_ticker = self.player.move_up(self.player.in_camera)
 
-                if keys[pygame.K_a] and world.player.left_walkable and world.player.upleft_walkable and world.player.downleft_walkable:
-                    world.player.move_up_and_left(world.player.in_camera)
-                if keys[pygame.K_d] and world.player.right_walkable and world.player.upright_walkable and world.player.downright_walkable:
-                    world.player.move_up_and_right(world.player.in_camera)
-
-        if keys[pygame.K_s] and world.player.down_walkable and world.player.downleft_walkable and world.player.downright_walkable:
+                if self.keys[
+                    pygame.K_a] and self.player.left_walkable and self.player.upleft_walkable and self.player.downleft_walkable:
+                    self.player.move_up_and_left(self.player.in_camera)
+                if self.keys[
+                    pygame.K_d] and self.player.right_walkable and self.player.upright_walkable and self.player.downright_walkable:
+                    self.player.move_up_and_right(self.player.in_camera)
+        if self.keys[
+            pygame.K_s] and self.player.down_walkable and self.player.downleft_walkable and self.player.downright_walkable:
             if move_ticker == 0:
-                move_ticker = world.player.move_down(world.player.in_camera)
-                #print("Moving down")
-                if keys[pygame.K_a] and world.player.left_walkable and world.player.upleft_walkable and world.player.downleft_walkable:
-                    world.player.move_down_and_left(world.player.in_camera)
-                if keys[pygame.K_d] and world.player.right_walkable and world.player.upright_walkable and world.player.downright_walkable:
-                    world.player.move_down_and_right(world.player.in_camera)
-
-
-        if keys[pygame.K_a] and world.player.left_walkable and world.player.upleft_walkable and world.player.downleft_walkable:
+                move_ticker = self.player.move_down(self.player.in_camera)
+                # print("Moving down")
+                if self.keys[
+                    pygame.K_a] and self.player.left_walkable and self.player.upleft_walkable and self.player.downleft_walkable:
+                    self.player.move_down_and_left(self.player.in_camera)
+                if self.keys[
+                    pygame.K_d] and self.player.right_walkable and self.player.upright_walkable and self.player.downright_walkable:
+                    self.player.move_down_and_right(self.player.in_camera)
+        if self.keys[
+            pygame.K_a] and self.player.left_walkable and self.player.upleft_walkable and self.player.downleft_walkable:
             if move_ticker == 0:
-                move_ticker = world.player.move_left(world.player.in_camera)
-
-        if keys[pygame.K_d] and world.player.right_walkable and world.player.upright_walkable and world.player.downright_walkable:
+                move_ticker = self.player.move_left(self.player.in_camera)
+        if self.keys[
+            pygame.K_d] and self.player.right_walkable and self.player.upright_walkable and self.player.downright_walkable:
             if move_ticker == 0:
-                move_ticker = world.player.move_right(world.player.in_camera)
+                move_ticker = self.player.move_right(self.player.in_camera)
 
+    def update_frames_and_time(self):
+        self.frames = self.frames + 1
+        self.seconds = self.frames / FPS
+
+    def update_item_positions_relative_to_camera(self):
+        for item in self.objects:
+            item.cx = item.wcx - self.camera_follow.cam_cx
+            item.cy = item.wcy - self.camera_follow.cam_cy
+
+    def reset_and_prepare_for_next_frame(self):
+        global main_menu
+        self.bullet_system.clean_shot()
+        main_menu = self.player.update_health()
+        self.health_bar.draw()
+        for enemy in self.enemies:
+            enemy.evaluate_health()
+            enemy.clean_up()
+            enemy.scan_for_friendlies(self.enemies)
+            # print(enemy.health)
+        for virus in self.viruses:
+            if virus.health > 0:
+                self.current_enemy_id = virus.clone_if_can(self.enemies, self.current_enemy_id)
+                virus.decrement_cooldown()
+            virus.evaluate_health()
+            virus.clean_up()
+            virus.scan_for_friendlies(self.enemies)
+        self.camera_follow.scan_for_player(self.player)
+        self.update_collision_hitboxes()
+        self.player.walking_spots = [self.player.left, self.player.right, self.player.down, self.player.up,
+                                      self.player.upleft, self.player.downleft, self.player.downright,
+                                      self.player.upright]
+        if not self.player.in_camera:
+            self.player.hcx = self.player.cx
+            self.player.hcy = self.player.cy
+        if 1 == 1:  # some high level logic right here (you need a computer science degree to understand)
+            self.bullet_system.decrement_cooldown(0.1)
+
+    def draw_bullet_trail(self):
+        if len(self.bullet_system.bullet_trail) > 0:
+            self.bullet_system.draw(self.player)
+
+    def allow_debug_options(self):
+        if self.keys[pygame.K_UP]:
+            self.player.in_camera = False
+        if self.keys[pygame.K_h]:
+            self.player.cx = 600
+            self.player.cy = 300
+            self.player.hcx = 600
+            self.player.hcy = 300
+            self.player.wcx = 600
+            self.player.wcy = 300
+            self.camera_follow.cam_cx = 0
+            self.camera_follow.cam_cy = 0
+        pygame.draw.circle(screen, (255, 50, 255), (self.player.hcx, self.player.hcy), 10)
+
+    def initialise_world_objects(self):
+        self.objects.append(self.island)
+        for i in range(len(self.trees)):
+            self.objects.append(self.trees[i])
+        for virus in world.viruses:
+            world.enemies.append(virus)
+        for enemy in world.enemies:
+            world.objects.append(enemy)
+
+    def set_up_main_menu(self):
+        pygame.font.init()
+        my_font = pygame.font.SysFont('Comic Sans MS', 30)
+        self.text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
+
+
+world = GameWorld()
+singleplayer = True
+main_menu = True
+
+world.set_up_main_menu()
+
+world.initialize_enemies(3,5)
+
+world.initialise_world_objects()
+
+while running:
+
+    if main_menu:
+        running,main_menu = world.display_menu(running,main_menu)
+    else:
+        world.update_frames_and_time()
+
+        world.draw_island_and_background()
+
+        world.draw_enemies_player_and_trees()
+
+        world.handle_sword_logic()
+
+        world.keys = pygame.key.get_pressed()
+
+        world.handle_inputs() #Handles left click, right click, g key, f key and movement
+
+        world.draw_bullet_trail()
 
         world.player.update_position()
 
         world.player.walking_spot_permissions = [True for i in range(8)]
 
-        for item in world.objects:
-            item.cx = item.wcx - camera_follow.cam_cx
-            item.cy = item.wcy - camera_follow.cam_cy
-
-        '''
-        if frames % 20 == 0:
-            world.player.hcx = world.player.wcx - camera_follow.cam_cx
-            world.player.hcy = world.player.wcy - camera_follow.cam_cy
-            print(world.player.wcx)
-            print(camera_follow.cam_cx)
-            '''
-
-        if not keys[pygame.K_w] and not keys[pygame.K_a] and not keys[pygame.K_d] and not keys[pygame.K_s]:
-            #world.player.decelerate()
-            #print("decellerating")
-            pass
-
-
-
+        world.update_item_positions_relative_to_camera()
 
         if debugging:
-            if keys[pygame.K_UP]:
-                world.player.in_camera = False
-            if keys[pygame.K_h]:
-                world.player.cx = 600
-                world.player.cy = 300
-                world.player.hcx = 600
-                world.player.hcy = 300
-                world.player.wcx = 600
-                world.player.wcy = 300
-                camera_follow.cam_cx = 0
-                camera_follow.cam_cy = 0
-            pygame.draw.circle(screen,(255,50,255),(world.player.hcx,world.player.hcy),10)
+            world.allow_debug_options() # Eg press h to return to initial positions
 
-        bullet_system.clean_shot()
-        main_menu = world.player.update_health()
-        health_bar.draw()
-
-        for enemy in world.enemies:
-            enemy.evaluate_health()
-            enemy.clean_up()
-            enemy.scan_for_friendlies(world.enemies)
-            #print(enemy.health)
-
-        for virus in world.viruses:
-            if virus.health > 0:
-                enemy_id = virus.clone_if_can(world.enemies,enemy_id)
-                virus.decrement_cooldown()
-            virus.evaluate_health()
-            virus.clean_up()
-            virus.scan_for_friendlies(world.enemies)
-
-        camera_follow.scan_for_player(world.player)
-
-        world.update_collision_hitboxes()
-
-
-        world.player.walking_spots = [world.player.left,world.player.right,world.player.down,world.player.up,world.player.upleft,world.player.downleft,world.player.downright,world.player.upright]
-
-        if not world.player.in_camera:
-            world.player.hcx = world.player.cx
-            world.player.hcy = world.player.cy
-
-        if 1 == 1: #some high level logic right here (you need a computer science degree to understand)
-            bullet_system.decrement_cooldown(0.1)
-
+        world.reset_and_prepare_for_next_frame()
 
         fpsClock.tick(FPS)
     pygame.display.flip()
