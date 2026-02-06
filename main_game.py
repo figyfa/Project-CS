@@ -1,3 +1,5 @@
+from pkgutil import get_loader
+
 import pygame
 import math
 import random
@@ -37,9 +39,29 @@ class Button():
         self.height = height
         self.color = color
         self.text = text
+        self.active = True
+        self.rect = pygame.Rect(x, y, width, height)
+        self.font = pygame.font.SysFont('comicsans', 30)
+        self.text_color = (0,0,0)
+        self.text = self.font.render(self.text, True, self.text_color)
+        self.center_rect = self.text.get_rect(center = self.rect.center)
 
     def draw(self):
-        pygame.draw.rect(screen, self.color, [self.cx, self.cy, self.width, self.height])
+        pygame.draw.rect(screen, self.color, self.rect)
+        screen.blit(self.text, self.center_rect)
+        print("Drawn")
+
+    def execute_command(self):
+        pass
+
+class StartButton(Button):
+    def __init__(self, x, y, width, height, color, text):
+        super().__init__(x, y, width, height, color, text)
+
+    def execute_command(self):
+        global main_menu
+        main_menu = False
+        self.active = False
 
 class Island:
     def __init__(self,colour, radius, cx, cy):
@@ -815,9 +837,14 @@ class GameWorld:
         self.seconds = 0
         self.text_surface = None
         self.bullet_system = Bullet_trail()
+        self.active_buttons = []
+
+        self.start_button = StartButton(300,300,100,100,(255,255,255),"start")
+
+        self.buttons = [self.start_button]
 
     def handle_inputs(self):
-        global running
+        global running, main_menu
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
@@ -827,6 +854,11 @@ class GameWorld:
                     self.bullet_system.create_shot(self.player, pygame.mouse.get_pos(), 0.1)
                     self.bullet_system.check_hit(self.enemies)
                     # print(enemy.health)
+                    for button in self.active_buttons:
+                        if button.rect.collidepoint(event.pos):
+                            print("Button pressed")
+                            button.execute_command()
+
                 if event.button == 3:
                     mouse_pos = pygame.mouse.get_pos()
 
@@ -873,6 +905,15 @@ class GameWorld:
 
     def display_menu(self, running, main_menu):
         print("Main Menu")
+
+        self.active_buttons = []
+
+        for button in self.buttons:
+            self.active_buttons.append(button)
+
+        for button in self.active_buttons:
+            button.draw()
+            print("drawn")
         menu_screen = pygame.Surface((1500, 900))
         menu_screen.fill((255, 255, 45))
         screen.blit(menu_screen, (0, 0))
@@ -998,6 +1039,19 @@ class GameWorld:
         self.bullet_system.clean_shot()
         main_menu = self.player.update_health()
         self.health_bar.draw()
+
+        self.active_buttons = []
+
+        for button in self.buttons:
+            if button.active:
+                self.active_buttons.append(button)
+
+        print(self.active_buttons)
+
+        for button in self.active_buttons:
+            button.draw()
+
+
         for enemy in self.enemies:
             enemy.evaluate_health()
             enemy.clean_up()
@@ -1052,6 +1106,11 @@ class GameWorld:
         pygame.font.init()
         my_font = pygame.font.SysFont('Comic Sans MS', 30)
         self.text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
+
+    def handle_buttons(self):
+        for button in self.active_buttons:
+            if button.check_if_clicked():
+                button.execute_command()
 
 
 world = GameWorld()
