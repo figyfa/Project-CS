@@ -28,6 +28,19 @@ def calc_distance(pointA, pointB):
 def calc_distance_circle_and_point(pointA, pointB):
     return math.sqrt((pointA.wcx - pointB[0]-world.camera_follow.cam_cx)**2 + (pointA.wcy - pointB[1] - world.camera_follow.cam_cy)**2) - pointA.radius
 
+
+class Button():
+    def __init__(self, x, y, width, height, color,text):
+        self.cx = x
+        self.cy = y
+        self.width = width
+        self.height = height
+        self.color = color
+        self.text = text
+
+    def draw(self):
+        pygame.draw.rect(screen, self.color, [self.cx, self.cy, self.width, self.height])
+
 class Island:
     def __init__(self,colour, radius, cx, cy):
         self.colour = colour
@@ -80,6 +93,7 @@ class Tree:
         pygame.draw.circle(screen,(0,240,20),(self.cx,self.cy-163),72)
         if debugging:
             pygame.draw.circle(screen,(255,255,255),(self.cx,self.cy),self.radius)
+
 class BoundingBox:
     def __init__(self,lx=450,ty=200,width=600,height=500,screen=screen):
         self.lx = lx
@@ -117,6 +131,8 @@ class Health_bar():
         pygame.draw.rect(screen,(255,0,0),(self.cx,self.cy,self.width-((1-world.player.health/100)*self.width),self.height))
 
 
+
+
 class Player:
     def __init__(self,cx,cy):
         self.cx = cx
@@ -138,14 +154,14 @@ class Player:
         self.wcy = 300
 
         #For collision
-        self.left = (self.cx - 30,self.cy)
-        self.up = (self.cx,self.cy - 10)
-        self.right = (self.cx + 10,self.cy)
-        self.down = (self.cx,self.cy+10)
-        self.upleft = (self.cx,self.cy)
-        self.upright = (self.cx,self.cy)
-        self.downleft = (self.cx,self.cy)
-        self.downright = (self.cx,self.cy)
+        self.left = (0,0)
+        self.up = (0,0)
+        self.right = (0,0)
+        self.down = (0,0)
+        self.upleft = (0,0)
+        self.upright = (0,0)
+        self.downleft = (0,0)
+        self.downright = (0,0)
         self.walking_spots = [self.left,self.right,self.down,self.up,self.upleft,self.downleft,self.downright,self.upright]
         self.collision_radius = 5
 
@@ -196,6 +212,7 @@ class Player:
             self.wcy -= self.vy * self.sprinting
             # print("Moving up",self.cx,self.cy)
             return move_ticker
+
     def move_up_and_right(self,in_camera):
         if in_camera:
             self.hcx += HYPOTENUSE * self.sprinting
@@ -212,6 +229,7 @@ class Player:
             self.wcx += HYPOTENUSE * self.sprinting
             self.wcy += (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving up and right")
+
     def move_up_and_left(self,in_camera):
         if in_camera:
             self.hcx -= HYPOTENUSE * self.sprinting
@@ -228,6 +246,7 @@ class Player:
             self.wcx -= HYPOTENUSE * self.sprinting
             self.wcy += (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving up and left")
+
     def move_down(self,in_camera):
         if in_camera:
             move_ticker = MOVE_COUNTER
@@ -244,6 +263,7 @@ class Player:
             self.wcy += self.vy * self.sprinting
             # print("Moving down")
             return move_ticker
+
     def move_down_and_left(self,in_camera):
         if in_camera:
             self.hcx -= HYPOTENUSE * self.sprinting
@@ -260,6 +280,7 @@ class Player:
             self.wcx -= HYPOTENUSE * self.sprinting
             self.wcy -= (self.vy-HYPOTENUSE) * self.sprinting
             # print("Moving left and down")
+
     def move_down_and_right(self,in_camera):
         if in_camera:
             # print("Moving down and right")
@@ -276,6 +297,7 @@ class Player:
             world.camera_follow.cam_cy -= (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx += HYPOTENUSE * self.sprinting
             self.wcy -= (self.vy-HYPOTENUSE) * self.sprinting
+
     def move_left(self,in_camera):
         if in_camera:
             move_ticker = MOVE_COUNTER
@@ -1038,7 +1060,7 @@ main_menu = True
 
 world.set_up_main_menu()
 
-world.initialize_enemies(3,5)
+world.initialize_enemies(1,1)
 
 world.initialise_world_objects()
 
