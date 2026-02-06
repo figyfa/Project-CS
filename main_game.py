@@ -1,5 +1,3 @@
-from pkgutil import get_loader
-
 import pygame
 import math
 import random
@@ -46,10 +44,9 @@ class Button():
         self.text = self.font.render(self.text, True, self.text_color)
         self.center_rect = self.text.get_rect(center = self.rect.center)
 
-    def draw(self):
+    def draw(self,screen):
         pygame.draw.rect(screen, self.color, self.rect)
         screen.blit(self.text, self.center_rect)
-        print("Drawn")
 
     def execute_command(self):
         pass
@@ -840,6 +837,7 @@ class GameWorld:
         self.active_buttons = []
 
         self.start_button = StartButton(300,300,100,100,(255,255,255),"start")
+        self.start_button.active = True
 
         self.buttons = [self.start_button]
 
@@ -854,10 +852,6 @@ class GameWorld:
                     self.bullet_system.create_shot(self.player, pygame.mouse.get_pos(), 0.1)
                     self.bullet_system.check_hit(self.enemies)
                     # print(enemy.health)
-                    for button in self.active_buttons:
-                        if button.rect.collidepoint(event.pos):
-                            print("Button pressed")
-                            button.execute_command()
 
                 if event.button == 3:
                     mouse_pos = pygame.mouse.get_pos()
@@ -903,21 +897,22 @@ class GameWorld:
         self.player.downleft = (self.player.cx - 18, self.player.cy + 18)
         self.player.upright = (self.player.cx + 18, self.player.cy - 18)
 
-    def display_menu(self, running, main_menu):
+    def display_menu(self):
+        global running,main_menu,menu_screen
+        menu_screen = pygame.Surface((1500, 900))
+        menu_screen.fill((255, 255, 45))
         print("Main Menu")
-
+        self.start_button.active = True
         self.active_buttons = []
 
         for button in self.buttons:
-            self.active_buttons.append(button)
+            if button.active:
+                self.active_buttons.append(button)
 
         for button in self.active_buttons:
-            button.draw()
+            button.draw(menu_screen)
             print("drawn")
-        menu_screen = pygame.Surface((1500, 900))
-        menu_screen.fill((255, 255, 45))
-        screen.blit(menu_screen, (0, 0))
-        screen.blit(self.text_surface, (750, 450))
+
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
@@ -926,7 +921,6 @@ class GameWorld:
                 main_menu = False
 
         pygame.display.flip()
-        return running,main_menu
 
     def draw_island_and_background(self):
         screen.fill((107, 191, 255))
@@ -1049,7 +1043,7 @@ class GameWorld:
         print(self.active_buttons)
 
         for button in self.active_buttons:
-            button.draw()
+            button.draw(screen)
 
 
         for enemy in self.enemies:
@@ -1102,22 +1096,16 @@ class GameWorld:
         for enemy in world.enemies:
             world.objects.append(enemy)
 
-    def set_up_main_menu(self):
-        pygame.font.init()
-        my_font = pygame.font.SysFont('Comic Sans MS', 30)
-        self.text_surface = my_font.render('Click mouse to start', False, (0, 0, 0))
-
-    def handle_buttons(self):
+    def handle_buttons(self,screen):
         for button in self.active_buttons:
-            if button.check_if_clicked():
+            button.draw(screen)
+            if button.rect.collidepoint(pygame.mouse.get_pos()):
                 button.execute_command()
 
 
 world = GameWorld()
 singleplayer = True
 main_menu = True
-
-world.set_up_main_menu()
 
 world.initialize_enemies(1,1)
 
@@ -1126,7 +1114,9 @@ world.initialise_world_objects()
 while running:
 
     if main_menu:
-        running,main_menu = world.display_menu(running,main_menu)
+        world.display_menu()
+
+        world.handle_buttons(menu_screen)
     else:
         world.update_frames_and_time()
 
@@ -1147,6 +1137,8 @@ while running:
         world.player.walking_spot_permissions = [True for i in range(8)]
 
         world.update_item_positions_relative_to_camera()
+
+        world.handle_buttons(screen)
 
         if debugging:
             world.allow_debug_options() # Eg press h to return to initial positions
