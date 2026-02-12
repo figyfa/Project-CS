@@ -30,7 +30,7 @@ def calc_distance_circle_and_point(pointA, pointB):
     return math.sqrt((pointA.wcx - pointB[0]-world.camera_follow.cam_cx)**2 + (pointA.wcy - pointB[1] - world.camera_follow.cam_cy)**2) - pointA.radius
 
 
-class Button():
+class Widget():
     def __init__(self, x, y, width, height, color,text):
         self.cx = x
         self.cy = y
@@ -44,6 +44,7 @@ class Button():
         self.text_color = (0,0,0)
         self.text = self.font.render(self.text, True, self.text_color)
         self.center_rect = self.text.get_rect(center = self.rect.center)
+        self.adjustable = False
 
     def draw(self,screen):
         pygame.draw.rect(screen, self.color, self.rect)
@@ -52,7 +53,7 @@ class Button():
     def execute_command(self):
         pass
 
-class StartButton(Button):
+class StartButton(Widget):
     def __init__(self, x, y, width, height, color, text):
         super().__init__(x, y, width, height, color, text)
 
@@ -60,6 +61,47 @@ class StartButton(Button):
         global main_menu
         main_menu = False
         self.active = False
+
+class SettingsButton(Widget):
+    def __init__(self, x, y, width, height, color, text):
+        super().__init__(x,y,width,height,color,text)
+
+    def execute_command(self):
+        self.active = False
+        world.open_settings()
+
+class Plus_button(Widget):
+    def __init__(self, x, y, width, height, color,text_box):
+        super().__init__(x,y,width,height,color,"+")
+        self.text_box = text_box
+
+    def execute_command(self):
+        self.text_box.text = int(self.text_box.text)+1
+
+class Minus_button(Widget):
+    def __init__(self, x, y, width, height, color,text_box):
+        super().__init__(x,y,width,height,color,"-")
+        self.text_box = text_box
+
+    def execute_command(self):
+        self.text_box.text = int(self.text_box.text)-1
+
+class Text_box(Widget):
+    def __init__(self, x, y, width, height, color,text,adjustable):
+        super().__init__(x,y,width,height,color,text)
+        self.adjustable = adjustable
+        self.active = False
+
+        if adjustable:
+            self.plus_button = Plus_button(x+350, y, width, height, color,self)
+            self.minus_button = Minus_button(x-200, y, width, height, color,self)
+            self.plus_button.active = False
+            self.minus_button.active = False
+        else:
+            self.plus_button = None
+            self.minus_button = None
+
+
 
 class Island:
     def __init__(self,colour, radius, cx, cy):
@@ -835,12 +877,16 @@ class GameWorld:
         self.seconds = 0
         self.text_surface = None
         self.bullet_system = Bullet_trail()
-        self.active_buttons = []
+        self.active_widgets = []
 
-        self.start_button = StartButton(300,300,100,100,(255,255,255),"start")
-        self.start_button.active = True
+        self.start_button = StartButton(450,600,300,100,(255,255,255),"start")
 
-        self.buttons = [self.start_button]
+        self.settings_button = SettingsButton(850,600,300,100,(255,255,255),"settings")
+
+        self.enemies_text_box = Text_box(450,300,300,100,(255,255,255),"enemies",False)
+        self.enemies_counter = Text_box(550,400,300,100,(255,255,255),"10",True)
+
+        self.widgets = [self.start_button, self.settings_button,self.enemies_text_box,self.enemies_counter,self.enemies_counter.plus_button,self.enemies_counter.minus_button]
 
     def handle_inputs(self):
         global running, main_menu
@@ -903,14 +949,17 @@ class GameWorld:
     def display_menu(self):
         global running,main_menu,menu_screen
         menu_screen.fill((255, 212, 45))
+        self.draw_buttons(menu_screen)
         screen.blit(menu_screen,(0,0))
         print("Main Menu")
-        self.start_button.active = True
-        self.active_buttons = []
+        self.active_widgets = []
 
-        for button in self.buttons:
+        for button in self.widgets:
             if button.active:
-                self.active_buttons.append(button)
+                self.active_widgets.append(button)
+                if button.adjustable:
+                    self.active_widgets.append(button.plus_button)
+                    self.active_widgets.append(button.minus_button)
 
         for event in pygame.event.get():
 
@@ -1031,15 +1080,15 @@ class GameWorld:
         main_menu = self.player.update_health()
         self.health_bar.draw()
 
-        self.active_buttons = []
+        self.active_widgets = []
 
-        for button in self.buttons:
+        for button in self.widgets:
             if button.active:
-                self.active_buttons.append(button)
+                self.active_widgets.append(button)
 
-        print(self.active_buttons)
+        print(self.active_widgets)
 
-        for button in self.active_buttons:
+        for button in self.active_widgets:
             button.draw(screen)
 
 
@@ -1094,13 +1143,23 @@ class GameWorld:
             world.objects.append(enemy)
 
     def draw_buttons(self,screen):
-        for button in self.active_buttons:
+        for button in self.active_widgets:
             button.draw(screen)
 
     def handle_buttons(self):
-        for button in self.active_buttons:
+        for button in self.active_widgets:
             if button.rect.collidepoint(pygame.mouse.get_pos()):
                 button.execute_command()
+
+    def open_settings(self):
+        for widget in self.widgets:
+            widget.active = False
+
+        self.enemies_text_box.active = True
+        self.enemies_counter.active = True
+
+
+
 
 
 world = GameWorld()
@@ -1115,8 +1174,6 @@ while running:
 
     if main_menu:
         world.display_menu()
-
-        world.draw_buttons(screen)
     else:
         world.update_frames_and_time()
 
