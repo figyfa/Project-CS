@@ -13,6 +13,7 @@ PORT = 8000
 pygame.init()
 
 screen = pygame.display.set_mode((1500, 900))
+menu_screen = pygame.Surface((1500, 900))
 
 running = True
 
@@ -851,6 +852,8 @@ class GameWorld:
                 if event.button == 1:
                     self.bullet_system.create_shot(self.player, pygame.mouse.get_pos(), 0.1)
                     self.bullet_system.check_hit(self.enemies)
+
+                    self.handle_buttons()
                     # print(enemy.health)
 
                 if event.button == 3:
@@ -899,8 +902,8 @@ class GameWorld:
 
     def display_menu(self):
         global running,main_menu,menu_screen
-        menu_screen = pygame.Surface((1500, 900))
-        menu_screen.fill((255, 255, 45))
+        menu_screen.fill((255, 212, 45))
+        screen.blit(menu_screen,(0,0))
         print("Main Menu")
         self.start_button.active = True
         self.active_buttons = []
@@ -909,18 +912,12 @@ class GameWorld:
             if button.active:
                 self.active_buttons.append(button)
 
-        for button in self.active_buttons:
-            button.draw(menu_screen)
-            print("drawn")
-
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                main_menu = False
-
-        pygame.display.flip()
+                self.handle_buttons()
 
     def draw_island_and_background(self):
         screen.fill((107, 191, 255))
@@ -1096,9 +1093,12 @@ class GameWorld:
         for enemy in world.enemies:
             world.objects.append(enemy)
 
-    def handle_buttons(self,screen):
+    def draw_buttons(self,screen):
         for button in self.active_buttons:
             button.draw(screen)
+
+    def handle_buttons(self):
+        for button in self.active_buttons:
             if button.rect.collidepoint(pygame.mouse.get_pos()):
                 button.execute_command()
 
@@ -1116,7 +1116,7 @@ while running:
     if main_menu:
         world.display_menu()
 
-        world.handle_buttons(menu_screen)
+        world.draw_buttons(screen)
     else:
         world.update_frames_and_time()
 
@@ -1138,7 +1138,7 @@ while running:
 
         world.update_item_positions_relative_to_camera()
 
-        world.handle_buttons(screen)
+        world.draw_buttons(screen)
 
         if debugging:
             world.allow_debug_options() # Eg press h to return to initial positions
