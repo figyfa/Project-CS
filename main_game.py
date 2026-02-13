@@ -42,16 +42,29 @@ class Widget():
         self.rect = pygame.Rect(x, y, width, height)
         self.font = pygame.font.SysFont('comicsans', 30)
         self.text_color = (0,0,0)
-        self.text = self.font.render(self.text, True, self.text_color)
-        self.center_rect = self.text.get_rect(center = self.rect.center)
+        self.text_render = self.font.render(self.text, True, self.text_color)
+        self.center_rect = self.text_render.get_rect(center = self.rect.center)
         self.adjustable = False
 
     def draw(self,screen):
+        self.text_render = self.font.render(self.text, True, self.text_color)
         pygame.draw.rect(screen, self.color, self.rect)
-        screen.blit(self.text, self.center_rect)
+        screen.blit(self.text_render, self.center_rect)
 
     def execute_command(self):
         pass
+
+class BackButton(Widget):
+    def __init__(self, x, y, width, height, color,text):
+        super().__init__(x,y,width,height,color,text)
+        self.active = False
+
+    def execute_command(self):
+        for button in world.widgets:
+            button.active = False
+
+        world.start_button.active = True
+        world.settings_button.active = True
 
 class StartButton(Widget):
     def __init__(self, x, y, width, height, color, text):
@@ -61,6 +74,11 @@ class StartButton(Widget):
         global main_menu
         main_menu = False
         self.active = False
+        world.settings_button.active = False
+
+        world.initialize_enemies(int(world.enemies_counter.text), 0)
+
+        world.initialise_world_objects()
 
 class SettingsButton(Widget):
     def __init__(self, x, y, width, height, color, text):
@@ -76,7 +94,8 @@ class Plus_button(Widget):
         self.text_box = text_box
 
     def execute_command(self):
-        self.text_box.text = int(self.text_box.text)+1
+        print(self.text_box.text)
+        self.text_box.text = str(int(self.text_box.text)+1)
 
 class Minus_button(Widget):
     def __init__(self, x, y, width, height, color,text_box):
@@ -84,7 +103,9 @@ class Minus_button(Widget):
         self.text_box = text_box
 
     def execute_command(self):
-        self.text_box.text = int(self.text_box.text)-1
+        if self.text_box.text != "0":
+            print(self.text_box.text)
+            self.text_box.text = str(int(self.text_box.text)-1)
 
 class Text_box(Widget):
     def __init__(self, x, y, width, height, color,text,adjustable):
@@ -886,7 +907,9 @@ class GameWorld:
         self.enemies_text_box = Text_box(450,300,300,100,(255,255,255),"enemies",False)
         self.enemies_counter = Text_box(550,400,300,100,(255,255,255),"10",True)
 
-        self.widgets = [self.start_button, self.settings_button,self.enemies_text_box,self.enemies_counter,self.enemies_counter.plus_button,self.enemies_counter.minus_button]
+        self.back_button = BackButton(250,200,300,100,(255,255,255),"<")
+
+        self.widgets = [self.start_button, self.settings_button,self.enemies_text_box,self.enemies_counter,self.enemies_counter.plus_button,self.enemies_counter.minus_button,self.back_button]
 
     def handle_inputs(self):
         global running, main_menu
@@ -951,7 +974,6 @@ class GameWorld:
         menu_screen.fill((255, 212, 45))
         self.draw_buttons(menu_screen)
         screen.blit(menu_screen,(0,0))
-        print("Main Menu")
         self.active_widgets = []
 
         for button in self.widgets:
@@ -1157,6 +1179,7 @@ class GameWorld:
 
         self.enemies_text_box.active = True
         self.enemies_counter.active = True
+        self.back_button.active = True
 
 
 
@@ -1166,14 +1189,13 @@ world = GameWorld()
 singleplayer = True
 main_menu = True
 
-world.initialize_enemies(1,1)
-
-world.initialise_world_objects()
 
 while running:
 
     if main_menu:
         world.display_menu()
+
+        print(world.enemies_counter.text)
     else:
         world.update_frames_and_time()
 
