@@ -76,6 +76,9 @@ class StartButton(Widget):
         self.active = False
         world.settings_button.active = False
 
+        world.laser_charge_text_box.active = True
+        world.wave_text_box.active = True
+
         world.initialize_enemies(int(world.enemies_counter.text), 0)
 
         world.initialise_world_objects()
@@ -122,6 +125,8 @@ class Text_box(Widget):
             self.plus_button = None
             self.minus_button = None
 
+    def update(self,text):
+        self.text = text
 
 
 class Island:
@@ -235,6 +240,9 @@ class Player:
         self.first_run = True
         self.wcx = 600
         self.wcy = 300
+
+        self.laser_charge = 0
+        self.firing_laser = False
 
         #For collision
         self.left = (0,0)
@@ -442,6 +450,8 @@ class Player:
             return False
         else:
             print("Game over")
+            for widget in world.widgets:
+                widget.active = False
             return True
     def fire_laser(self):
         mouse_pos = pygame.mouse.get_pos()
@@ -485,6 +495,14 @@ class Player:
         if self.in_camera:
             self.hcx = self.cx
             self.hcy = self.cy
+
+    def decrease_laser_charge(self):
+        if world.frames % (FPS/20) == 0:
+            self.laser_charge -= 1
+
+    def increase_laser_charge(self):
+        if world.frames % FPS == 0:
+            self.laser_charge += 1
 
 
 class Player2 (Player):
@@ -601,6 +619,10 @@ class Enemy:
         self.got_hit_this_frame = True
         self.sword_target.wcx = self.wcx + sword_xvector *1000
         self.sword_target.wcy = self.wcy + sword_yvector *1000
+        if self.health <= 0:
+            world.player.laser_charge += 5
+            if world.player.laser_charge > 100:
+                world.player.laser_charge = 100
 
     def recover_from_sword(self):
         if self.initialised == False:
@@ -801,6 +823,10 @@ class Grenade_v2:
         for enemy in world.enemies:
             if calc_distance(self, enemy) < 0:
                 enemy.health = enemy.health - 30
+                if enemy.health <= 0:
+                    world.player.laser_charge += 5
+                    if world.player.laser_charge > 100:
+                        world.player.laser_charge = 100
         if calc_distance(self, world.player) < 0:
             world.player.health = world.player.health - 30
 
@@ -826,6 +852,10 @@ class Bullet_trail:
             for i in range(len(enemies)-1,-1,-1):
                 if (calc_distance_circle_and_point(enemies[i], self.bullet_trail[index]) <= 0 and got_hit_this_frame == False):
                     enemies[i].health -= 20
+                    if enemies[i].health <= 0:
+                        world.player.laser_charge += 5
+                        if world.player.laser_charge > 100:
+                            world.player.laser_charge = 100
                     #print(enemy.health)
                     #print("oof")
                     #print(enemy.colour)
@@ -879,6 +909,8 @@ class Bullet_trail:
 
 class GameWorld:
     def __init__(self):
+        self.current_time = 0
+        self.initializing_next_wave = True
         self.objects = []
         self.keys = pygame.key.get_pressed()
         self.player = Player(600,300)
@@ -893,6 +925,10 @@ class GameWorld:
         self.active_grenades = []
         self.camera_follow = BoundingBox()
         self.health_bar = Health_bar()
+
+        self.laser_charge_text_box = Text_box(600,750,300,100,(255,255,255),str(self.player.laser_charge)+"%",False)
+        self.laser_charge_text_box.active = False
+
         self.players = [self.player]
         self.frames = 0
         self.seconds = 0
@@ -909,7 +945,12 @@ class GameWorld:
 
         self.back_button = BackButton(250,200,300,100,(255,255,255),"<")
 
-        self.widgets = [self.start_button, self.settings_button,self.enemies_text_box,self.enemies_counter,self.enemies_counter.plus_button,self.enemies_counter.minus_button,self.back_button]
+        self.wave_text_box = Text_box(600,50,300,75,(255,255,255),"wave 1",False)
+        self.wave_text_box.active = False
+        self.next_wave_time = Text_box(500,250,200,100,(255,255,255),"0:05",False)
+        self.next_wave_time.active = False
+
+        self.widgets = [self.start_button, self.settings_button,self.enemies_text_box,self.enemies_counter,self.enemies_counter.plus_button,self.enemies_counter.minus_button,self.back_button,self.laser_charge_text_box,self.wave_text_box,self.next_wave_time]
 
     def handle_inputs(self):
         global running, main_menu
@@ -1045,9 +1086,16 @@ class GameWorld:
         return key_g_held_down, key_g_not_pressed
 
     def handle_laser_inputs(self):
-        if self.keys[pygame.K_f]:
+        if self.keys[pygame.K_f] and self.player.laser_charge > 50:
+            self.player.firing_laser = True
+        if self.player.firing_laser:
             self.player.fire_laser()
             self.player.check_laser_hit(self.enemies)
+            self.player.decrease_laser_charge()
+        if not self.keys[pygame.K_f] or self.player.laser_charge <= 0:
+            self.player.firing_laser = False
+        if not self.player.firing_laser and self.player.laser_charge <= 99:
+            self.player.increase_laser_charge()
 
     def handle_movement(self):
         if self.keys[pygame.K_LSHIFT]:
@@ -1113,6 +1161,7 @@ class GameWorld:
         for button in self.active_widgets:
             button.draw(screen)
 
+        self.laser_charge_text_box.update(str(self.player.laser_charge) + "%")
 
         for enemy in self.enemies:
             enemy.evaluate_health()
@@ -1134,8 +1183,20 @@ class GameWorld:
         if not self.player.in_camera:
             self.player.hcx = self.player.cx
             self.player.hcy = self.player.cy
-        if 1 == 1:  # some high level logic right here (you need a computer science degree to understand)
-            self.bullet_system.decrement_cooldown(0.1)
+
+        self.bullet_system.decrement_cooldown(0.1)
+
+        if not self.enemies:
+            if self.initializing_next_wave:
+                print("Wave cleared")
+                self.next_wave_time.active = True
+                self.current_time = self.seconds
+                self.initializing_next_wave = False
+
+
+
+
+
 
     def draw_bullet_trail(self):
         if len(self.bullet_system.bullet_trail) > 0:
@@ -1194,8 +1255,6 @@ while running:
 
     if main_menu:
         world.display_menu()
-
-        print(world.enemies_counter.text)
     else:
         world.update_frames_and_time()
 
