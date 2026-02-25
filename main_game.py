@@ -17,7 +17,7 @@ menu_screen = pygame.Surface((1500, 900))
 
 running = True
 
-debugging = True
+debugging = False
 
 FPS = 60
 fpsClock = pygame.time.Clock()
@@ -79,7 +79,7 @@ class StartButton(Widget):
         world.laser_charge_text_box.active = True
         world.wave_text_box.active = True
 
-        world.initialize_enemies(int(world.enemies_counter.text), 0)
+        world.initialize_enemies(int(world.enemies_counter.text), world.virus_count)
 
         world.initialise_world_objects()
 
@@ -909,6 +909,8 @@ class Bullet_trail:
 
 class GameWorld:
     def __init__(self):
+        self.seconds_passed = 0
+        self.virus_count = 0
         self.current_time = 0
         self.initializing_next_wave = True
         self.objects = []
@@ -925,6 +927,7 @@ class GameWorld:
         self.active_grenades = []
         self.camera_follow = BoundingBox()
         self.health_bar = Health_bar()
+        self.current_wave = 1
 
         self.laser_charge_text_box = Text_box(600,750,300,100,(255,255,255),str(self.player.laser_charge)+"%",False)
         self.laser_charge_text_box.active = False
@@ -1192,6 +1195,23 @@ class GameWorld:
                 self.next_wave_time.active = True
                 self.current_time = self.seconds
                 self.initializing_next_wave = False
+                self.next_wave_time.active = True
+            if (self.seconds - self.current_time) >= 1:
+                self.current_time = self.seconds
+                self.seconds_passed += 1
+                self.next_wave_time.update(f"0:0{int(5 - self.seconds_passed)}")
+                if self.seconds_passed >= 5:
+                    self.seconds_passed = 0
+                    self.current_wave += 1
+                    self.wave_text_box.update(f"wave {self.current_wave}")
+                    self.next_wave_time.active = False
+                    self.initializing_next_wave = True
+                    self.enemies_counter.text = str(int(self.enemies_counter.text) + 1)
+                    self.virus_count += 1
+                    self.initialize_enemies(int(world.enemies_counter.text), self.virus_count)
+                    self.seconds_passed = 0
+                    self.objects = []
+                    self.initialise_world_objects()
 
 
 
