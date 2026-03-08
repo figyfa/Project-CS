@@ -21,7 +21,7 @@ debugging = False
 
 FPS = 60
 fpsClock = pygame.time.Clock()
-pygame.display.set_caption("Server")
+pygame.display.set_caption("Game")
 
 def calc_distance(pointA, pointB):
     return math.sqrt((pointA.wcx - pointB.wcx)**2 + (pointA.wcy - pointB.wcy)**2) - pointA.radius - pointB.radius
@@ -642,6 +642,8 @@ class Enemy:
             self.can_move = 0
             if self in world.enemies:
                 world.enemies.remove(self)
+                world.enemies_defeated_count += 1
+                world.bacteria_defeated_count += 1
 
     def clean_up(self):
         self.got_hit_this_frame = False
@@ -708,6 +710,8 @@ class Virus(Enemy):
             self.can_move = 0
             if self in world.enemies:
                 world.enemies.remove(self)
+                world.enemies_defeated_count += 1
+                world.viruses_defeated_count += 1
 
     def clone_if_can(self,enemies,enemy_id):
         if self.clone_cooldown <= 0:
@@ -732,7 +736,7 @@ class Virus(Enemy):
             elif not self.deciding_where:
                 self.deciding_where = False
                 magnitude = math.sqrt((self.tx)**2 + (self.ty)**2)
-                if magnitude == 0:
+                if magnitude == 0 or calc_distance_circle_and_point(world.island,(self.wcx + self.tx,self.wcy+self.ty)) > 0:
                     self.deciding_where = True
                 else:
                     self.tx = self.tx / magnitude
@@ -779,6 +783,8 @@ class Grenade_v2:
             self.pos = (self.cx,self.cy)
             self.dy = target[1] - self.wcy
             self.dx = target[0] - self.wcx
+
+            world.grenades_launched_count += 1
 
             magnitude = math.sqrt((self.dx ** 2) + (self.dy ** 2))
             self.dy = (self.dy / magnitude) * 5
@@ -879,6 +885,7 @@ class Bullet_trail:
             self.deadly_bullet = ()
 
     def create_shot(self,player,destination,fire_rate):
+        world.shots_fired_count += 1
         if self.fire_rate <= 0:
             self.fire_rate = fire_rate
             magnitude = math.sqrt((destination[0] - player.cx) ** 2 + (destination[1] - player.cy) ** 2)
@@ -928,6 +935,7 @@ class GameWorld:
         self.camera_follow = BoundingBox()
         self.health_bar = Health_bar()
         self.current_wave = 1
+        self.victory = False
 
         self.laser_charge_text_box = Text_box(600,750,300,100,(255,255,255),str(self.player.laser_charge)+"%",False)
         self.laser_charge_text_box.active = False
@@ -944,16 +952,35 @@ class GameWorld:
         self.settings_button = SettingsButton(850,600,300,100,(255,255,255),"settings")
 
         self.enemies_text_box = Text_box(450,300,300,100,(255,255,255),"enemies",False)
-        self.enemies_counter = Text_box(550,400,300,100,(255,255,255),"10",True)
+        self.enemies_counter = Text_box(550,400,300,100,(255,255,255),"1",True)
 
         self.back_button = BackButton(250,200,300,100,(255,255,255),"<")
+
+        self.congrats = Text_box(450,200,200,100,(255,255,255),"congrats",False)
+
+        self.you_lose = Text_box(450,200,200,100,(255,255,255),"you lose",False)
+
+        self.enemies_defeated = Text_box(450,300,500,100,(255,255,255),"Enemies defeated: 0",False)
+        self.enemies_defeated_count = 0
+
+        self.grenades_launched = Text_box(450,400,500,100,(255,255,255),"Grenades launched: 0",False)
+        self.grenades_launched_count = 0
+
+        self.viruses_defeated = Text_box(450,500,500,100,(255,255,255),"Viruses defeated: 0",False)
+        self.viruses_defeated_count = 0
+
+        self.bacteria_defeated = Text_box(450,600,500,100,(255,255,255),"Bacteria defeated: 0",False)
+        self.bacteria_defeated_count = 0
+
+        self.shots_fired = Text_box(450,700,500,100,(255,255,255),"Shots fired: 0",False)
+        self.shots_fired_count = 0
 
         self.wave_text_box = Text_box(600,50,300,75,(255,255,255),"wave 1",False)
         self.wave_text_box.active = False
         self.next_wave_time = Text_box(500,250,200,100,(255,255,255),"0:05",False)
         self.next_wave_time.active = False
 
-        self.widgets = [self.start_button, self.settings_button,self.enemies_text_box,self.enemies_counter,self.enemies_counter.plus_button,self.enemies_counter.minus_button,self.back_button,self.laser_charge_text_box,self.wave_text_box,self.next_wave_time]
+        self.widgets = [self.shots_fired,self.enemies_defeated,self.grenades_launched,self.viruses_defeated,self.bacteria_defeated,self.you_lose, self.congrats, self.start_button, self.settings_button,self.enemies_text_box,self.enemies_counter,self.enemies_counter.plus_button,self.enemies_counter.minus_button,self.back_button,self.laser_charge_text_box,self.wave_text_box,self.next_wave_time]
 
     def handle_inputs(self):
         global running, main_menu
@@ -1159,7 +1186,7 @@ class GameWorld:
             if button.active:
                 self.active_widgets.append(button)
 
-        print(self.active_widgets)
+        #print(self.active_widgets)
 
         for button in self.active_widgets:
             button.draw(screen)
@@ -1202,16 +1229,52 @@ class GameWorld:
                 self.next_wave_time.update(f"0:0{int(5 - self.seconds_passed)}")
                 if self.seconds_passed >= 5:
                     self.seconds_passed = 0
+                    self.next_wave_time.update(f"0:0{int(5 - self.seconds_passed)}")
                     self.current_wave += 1
+                    if self.current_wave == 11:
+                        print("Victory")
+                        self.victory = True
+                        main_menu = True
                     self.wave_text_box.update(f"wave {self.current_wave}")
+                    if self.current_wave % 2 == 0:
+                        self.virus_count += 1
                     self.next_wave_time.active = False
                     self.initializing_next_wave = True
                     self.enemies_counter.text = str(int(self.enemies_counter.text) + 1)
-                    self.virus_count += 1
                     self.initialize_enemies(int(world.enemies_counter.text), self.virus_count)
-                    self.seconds_passed = 0
                     self.objects = []
                     self.initialise_world_objects()
+
+        if main_menu:
+            self.grenades_launched.update("Grenades launched: "+str(self.grenades_launched_count))
+            self.shots_fired.update("Shots fired: "+str(self.shots_fired_count))
+            self.enemies_defeated.update("Enemies defeated: "+str(self.enemies_defeated_count))
+            self.bacteria_defeated.update("Bacteria defeated: "+str(self.bacteria_defeated_count))
+            self.viruses_defeated.update("Viruses defeated: "+str(self.viruses_defeated_count))
+
+        if self.victory:
+            print("You win")
+            for widget in self.widgets:
+                widget.active = False
+            self.congrats.active = True
+            self.grenades_launched.active = True
+            self.enemies_defeated.active = True
+            self.bacteria_defeated.active = True
+            self.viruses_defeated.active = True
+            self.shots_fired.active = True
+
+        if main_menu and not self.victory:
+            print("You lose")
+            for widget in self.widgets:
+                widget.active = False
+            self.you_lose.active = True
+            self.grenades_launched.active = True
+            self.enemies_defeated.active = True
+            self.bacteria_defeated.active = True
+            self.viruses_defeated.active = True
+            self.shots_fired.active = True
+
+
 
 
 
