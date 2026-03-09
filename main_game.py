@@ -2,6 +2,7 @@ import pygame
 import math
 import random
 import socket
+import os
 
 MOVE_COUNTER = 10
 
@@ -11,6 +12,15 @@ IP = "127.0.0.1"
 PORT = 8000
 
 pygame.init()
+
+pygame.mixer.init()
+
+ss = pygame.mixer.Sound(os.path.join('sounds','SneSni.ogg'))
+am = pygame.mixer.Sound(os.path.join('sounds','AMis.ogg'))
+fad = pygame.mixer.Sound(os.path.join('sounds','FluaDuc.ogg'))
+qd = pygame.mixer.Sound(os.path.join('sounds','QuiDog.ogg'))
+SoTI = pygame.mixer.Sound(os.path.join('sounds','SoTI.ogg'))
+
 
 screen = pygame.display.set_mode((1500, 900))
 menu_screen = pygame.Surface((1500, 900))
