@@ -15,11 +15,7 @@ pygame.init()
 
 pygame.mixer.init()
 
-ss = pygame.mixer.Sound(os.path.join('sounds','SneSni.ogg'))
-am = pygame.mixer.Sound(os.path.join('sounds','AMis.ogg'))
-fad = pygame.mixer.Sound(os.path.join('sounds','FluaDuc.ogg'))
-qd = pygame.mixer.Sound(os.path.join('sounds','QuiDog.ogg'))
-SoTI = pygame.mixer.Sound(os.path.join('sounds','SoTI.ogg'))
+
 
 
 screen = pygame.display.set_mode((1500, 900))
@@ -426,12 +422,12 @@ class Player:
             move_ticker = MOVE_COUNTER
             self.hcx += self.vx * 10
             check = world.camera_follow.scan_for_player(self)
-            print(check)
+            #print(check)
             if check:
                 self.move_right(check)
             world.camera_follow.cam_cx += self.vx * self.sprinting
             self.wcx += self.vx * self.sprinting
-            print("moving right")
+            #print("moving right")
             return move_ticker
     def decelerate(self):
         if self.vx < 0:
@@ -957,6 +953,13 @@ class GameWorld:
         self.bullet_system = Bullet_trail()
         self.active_widgets = []
 
+        self.ss = pygame.mixer.Sound(os.path.join('sounds', 'SneSni.wav'))
+        self.am = pygame.mixer.Sound(os.path.join('sounds', 'AMis.wav'))
+        self.fad = pygame.mixer.Sound(os.path.join('sounds', 'FluaDuc.wav'))
+        self.qd = pygame.mixer.Sound(os.path.join('sounds', 'QuiDog.wav'))
+        self.SoTI = pygame.mixer.Sound(os.path.join('sounds', 'SoTI.wav'))
+        self.music_played = False
+
         self.start_button = StartButton(450,600,300,100,(255,255,255),"start")
 
         self.settings_button = SettingsButton(850,600,300,100,(255,255,255),"settings")
@@ -1226,6 +1229,10 @@ class GameWorld:
 
         self.bullet_system.decrement_cooldown(0.1)
 
+        if self.music_played == False:
+            print("Playing sound")
+            self.handle_soundtrack()
+
         if not self.enemies:
             if self.initializing_next_wave:
                 print("Wave cleared")
@@ -1246,8 +1253,9 @@ class GameWorld:
                         self.victory = True
                         main_menu = True
                     self.wave_text_box.update(f"wave {self.current_wave}")
-                    if self.current_wave % 2 == 0:
+                    if (self.current_wave + 1) % 2 == 0:
                         self.virus_count += 1
+                        self.music_played = False
                     self.next_wave_time.active = False
                     self.initializing_next_wave = True
                     self.enemies_counter.text = str(int(self.enemies_counter.text) + 1)
@@ -1335,6 +1343,22 @@ class GameWorld:
         self.enemies_counter.active = True
         self.back_button.active = True
 
+    def handle_soundtrack(self):
+        pygame.mixer.music.stop()
+        self.music_played = True
+        if 1 <= self.current_wave <= 2:
+            self.ss.play()
+            print("Playing ss")
+            '''
+        elif 3 <= self.current_wave <= 4:
+            self.fad.play()
+        elif 5 <= self.current_wave <= 6:
+            self.qd.play()
+        elif 7 <= self.current_wave <= 8:
+            self.SoTI.play()
+        else:
+            self.am.play()
+'''
 
 
 
