@@ -163,8 +163,7 @@ class Sword:
         self.yvector = 0
 
     def draw(self):
-        if debugging:
-            pygame.draw.circle(screen, (self.colour),(self.cx,self.cy),self.radius)
+        pygame.draw.circle(screen, (self.colour),(self.cx,self.cy),self.radius)
 
     def check_hit(self,enemies):
         for enemy in enemies:
