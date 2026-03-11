@@ -16,14 +16,12 @@ pygame.init()
 pygame.mixer.init()
 
 
-
-
 screen = pygame.display.set_mode((1500, 900))
 menu_screen = pygame.Surface((1500, 900))
 
 running = True
 
-debugging = False
+debugging = True
 
 FPS = 60
 fpsClock = pygame.time.Clock()
@@ -568,19 +566,21 @@ class Player2 (Player):
         print(f"Rectified data {self.cx} {self.cy}")
 
 class Target:
-    def __init__(self,cx,cy):
-        self.cx = cx
-        self.cy = cy
-        self.wcx = cx
-        self.wcy = cy
+    def __init__(self,wcx,wcy):
+        self.cx = wcx + world.camera_follow.cam_cx
+        self.cy = wcy + world.camera_follow.cam_cy
+        self.wcx = wcx
+        self.wcy = wcy
         self.radius = 5
         self.health = 100
+        world.targets.append(self)
 
     def draw(self):
         pygame.draw.circle(screen, (255,123,123), (int(self.cx),int(self.cy)),self.radius)
 
 class Enemy:
     def __init__(self,cx,cy,id):
+        self.type = "e"
         self.id = id
         self.cx = cx
         self.cy = cy
@@ -589,6 +589,7 @@ class Enemy:
         self.wcy = cy
         self.vx = 0
         self.vy = 0
+        self.SPEED = 3
         self.health = 100
         self.colour = (255,255,255)
         self.got_hit_this_frame = False
@@ -672,8 +673,8 @@ class Enemy:
             angle = math.atan((player.cy - self.cy)/(player.cx - self.cx))
 
         #print(angle/math.pi*180)
-        self.vx = -3 * math.cos(angle)
-        self.vy = -3 * math.sin(angle)
+        self.vx = -self.SPEED * math.cos(angle)
+        self.vy = -self.SPEED * math.sin(angle)
 
         if self.cx > player.cx:
             self.wcx += self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
@@ -699,13 +700,15 @@ class Enemy:
 class Virus(Enemy):
     def __init__(self,enemy_id):
         super().__init__(random.randint(0,500),random.randint(0,500),enemy_id)
+        self.target = Target(0,0)
         self.clone_cooldown = 0
         self.colour = (255,0,0)
         self.deciding_where = False
+        self.type = "v"
         self.tx = 0
         self.ty = 0
         self.counter = 0
-
+        self.SPEED = 1
     def draw(self):
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
 
@@ -731,28 +734,13 @@ class Virus(Enemy):
     def decrement_cooldown(self):
         self.clone_cooldown -= (1/FPS)
 
-    def beeline(self,player):
-        if self.health > 0:
-            if self.deciding_where:
-                self.tx = random.randint(-30,30)
-                self.ty = random.randint(-30,30)
-                self.deciding_where = False
-                self.counter = 3
+    def get_target(self):
+        self.tx = random.randint(-30, 30) * 45
+        self.ty = random.randint(-30, 30) * 45
+        self.target = Target(self.wcx + self.tx, self.wcy + self.ty)
+        self.deciding_where = False
+        self.counter = 3
 
-            elif not self.deciding_where:
-                self.deciding_where = False
-                magnitude = math.sqrt((self.tx)**2 + (self.ty)**2)
-                if magnitude == 0 or calc_distance_circle_and_point(world.island,(self.wcx + self.tx,self.wcy+self.ty)) > 0:
-                    self.deciding_where = True
-                else:
-                    self.tx = self.tx / magnitude
-                    self.ty = self.ty / magnitude
-                    self.wcx += self.tx
-                    self.wcy += self.ty
-                    self.counter -= (1/FPS)
-
-            if self.counter <= 0:
-                self.deciding_where = True
 
 class Grenade_v2:
     def __init__(self):
@@ -923,7 +911,7 @@ class Bullet_trail:
 class GameWorld:
     def __init__(self):
         self.seconds_passed = 0
-        self.virus_count = 0
+        self.virus_count = 1
         self.current_time = 0
         self.initializing_next_wave = True
         self.objects = []
@@ -935,6 +923,7 @@ class GameWorld:
         self.viruses = []
         self.current_enemy_id = 0
         self.trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(15)] # How many trees
+        self.targets = []
         self.key_g_held_down = False
         self.key_g_not_pressed = True
         self.active_grenades = []
@@ -1092,8 +1081,26 @@ class GameWorld:
             if debugging:
                 enemy.sword_target.draw()
             if not enemy.sword_stunned:
-                enemy.beeline(self.player)
+                if enemy.type == "e":
+                    enemy.beeline(self.player)
+                else:
+                    enemy.SPEED = 1
+                    if enemy.deciding_where:
+                        enemy.target = Target(enemy.wcx + 45*random.randint(-30,30),enemy.wcy + 45*random.randint(-30, 30))
+                        self.objects.append(enemy.target)
+                        enemy.counter = 3
+                        enemy.deciding_where = False
+                        if calc_distance(enemy.target,self.island) > 0:
+                            enemy.deciding_where = True
+                    else:
+                        if debugging:
+                            enemy.target.draw()
+                        enemy.beeline(enemy.target)
+                        enemy.counter -= (1/FPS)
+                        if enemy.counter <= 0:
+                            enemy.deciding_where = True
             else:
+                enemy.SPEED = 3
                 enemy.beeline(enemy.sword_target)  # Composition
                 enemy.recover_from_sword()
 
@@ -1229,10 +1236,6 @@ class GameWorld:
 
         self.bullet_system.decrement_cooldown(0.1)
 
-        if self.music_played == False:
-            print("Playing sound")
-            self.handle_soundtrack()
-
         if not self.enemies:
             if self.initializing_next_wave:
                 print("Wave cleared")
@@ -1296,9 +1299,6 @@ class GameWorld:
 
 
 
-
-
-
     def draw_bullet_trail(self):
         if len(self.bullet_system.bullet_trail) > 0:
             self.bullet_system.draw(self.player)
@@ -1325,6 +1325,8 @@ class GameWorld:
             world.enemies.append(virus)
         for enemy in world.enemies:
             world.objects.append(enemy)
+        for target in world.targets:
+            world.objects.append(target)
 
     def draw_buttons(self,screen):
         for button in self.active_widgets:
@@ -1344,23 +1346,24 @@ class GameWorld:
         self.back_button.active = True
 
     def handle_soundtrack(self):
-        pygame.mixer.music.stop()
-        self.music_played = True
-        if 1 <= self.current_wave <= 2:
-            self.ss.play()
-            print("Playing ss")
-            '''
-        elif 3 <= self.current_wave <= 4:
-            self.fad.play()
-        elif 5 <= self.current_wave <= 6:
-            self.qd.play()
-        elif 7 <= self.current_wave <= 8:
-            self.SoTI.play()
-        else:
-            self.am.play()
-'''
-
-
+        if self.music_played == False:
+            pygame.mixer.stop()
+            self.music_played = True
+            if 1 <= self.current_wave <= 2:
+                self.ss.play(-1)
+                print("Playing ss")
+            elif 3 <= self.current_wave <= 4:
+                self.fad.play(-1)
+                print("fad")
+            elif 5 <= self.current_wave <= 6:
+                self.qd.play(-1)
+                print("qd")
+            elif 7 <= self.current_wave <= 8:
+                self.am.play(-1)
+                print("am")
+            else:
+                self.SoTI.play(-1)
+                print("SoTIs")
 
 
 world = GameWorld()
@@ -1399,6 +1402,8 @@ while running:
             world.allow_debug_options() # Eg press h to return to initial positions
 
         world.reset_and_prepare_for_next_frame()
+
+        world.handle_soundtrack()
 
         fpsClock.tick(FPS)
     pygame.display.flip()
