@@ -21,7 +21,7 @@ menu_screen = pygame.Surface((1500, 900))
 
 running = True
 
-debugging = True
+debugging = False
 
 FPS = 60
 fpsClock = pygame.time.Clock()
@@ -35,7 +35,7 @@ def calc_distance_circle_and_point(pointA, pointB):
 
 
 class Widget():
-    def __init__(self, x, y, width, height, color,text):
+    def __init__(self, x, y, width, height, color,text,game):
         self.cx = x
         self.cy = y
         self.width = width
@@ -49,6 +49,7 @@ class Widget():
         self.text_render = self.font.render(self.text, True, self.text_color)
         self.center_rect = self.text_render.get_rect(center = self.rect.center)
         self.adjustable = False
+        game.widgets.append(self)
 
     def draw(self,screen):
         self.text_render = self.font.render(self.text, True, self.text_color)
@@ -59,8 +60,8 @@ class Widget():
         pass
 
 class BackButton(Widget):
-    def __init__(self, x, y, width, height, color,text):
-        super().__init__(x,y,width,height,color,text)
+    def __init__(self, x, y, width, height, color,text,game):
+        super().__init__(x,y,width,height,color,text,game)
         self.active = False
 
     def execute_command(self):
@@ -71,8 +72,8 @@ class BackButton(Widget):
         world.settings_button.active = True
 
 class StartButton(Widget):
-    def __init__(self, x, y, width, height, color, text):
-        super().__init__(x, y, width, height, color, text)
+    def __init__(self, x, y, width, height, color, text,game):
+        super().__init__(x, y, width, height, color, text,game)
 
     def execute_command(self):
         global main_menu
@@ -83,21 +84,21 @@ class StartButton(Widget):
         world.laser_charge_text_box.active = True
         world.wave_text_box.active = True
 
-        world.initialize_enemies(int(world.enemies_counter.text), world.virus_count)
+        world.initialize_enemies(int(world.enemies_counter.text), int(world.viruses_counter.text))
 
         world.initialise_world_objects()
 
 class SettingsButton(Widget):
-    def __init__(self, x, y, width, height, color, text):
-        super().__init__(x,y,width,height,color,text)
+    def __init__(self, x, y, width, height, color, text,game):
+        super().__init__(x,y,width,height,color,text,game)
 
     def execute_command(self):
         self.active = False
         world.open_settings()
 
 class Plus_button(Widget):
-    def __init__(self, x, y, width, height, color,text_box):
-        super().__init__(x,y,width,height,color,"+")
+    def __init__(self, x, y, width, height, color,text_box,game):
+        super().__init__(x,y,width,height,color,"+",game)
         self.text_box = text_box
 
     def execute_command(self):
@@ -105,8 +106,8 @@ class Plus_button(Widget):
         self.text_box.text = str(int(self.text_box.text)+1)
 
 class Minus_button(Widget):
-    def __init__(self, x, y, width, height, color,text_box):
-        super().__init__(x,y,width,height,color,"-")
+    def __init__(self, x, y, width, height, color,text_box,game):
+        super().__init__(x,y,width,height,color,"-",game)
         self.text_box = text_box
 
     def execute_command(self):
@@ -115,14 +116,14 @@ class Minus_button(Widget):
             self.text_box.text = str(int(self.text_box.text)-1)
 
 class Text_box(Widget):
-    def __init__(self, x, y, width, height, color,text,adjustable):
-        super().__init__(x,y,width,height,color,text)
+    def __init__(self, x, y, width, height, color,text,adjustable,game):
+        super().__init__(x,y,width,height,color,text,game)
         self.adjustable = adjustable
         self.active = False
 
         if adjustable:
-            self.plus_button = Plus_button(x+350, y, width, height, color,self)
-            self.minus_button = Minus_button(x-200, y, width, height, color,self)
+            self.plus_button = Plus_button(x+120, y, width-10, height, color,self,game)
+            self.minus_button = Minus_button(x-100, y, width-10, height, color,self,game)
             self.plus_button.active = False
             self.minus_button.active = False
         else:
@@ -186,7 +187,7 @@ class Tree:
             pygame.draw.circle(screen,(255,255,255),(self.cx,self.cy),self.radius)
 
 class BoundingBox:
-    def __init__(self,lx=450,ty=200,width=600,height=500,screen=screen):
+    def __init__(self,lx=550,ty=300,width=400,height=250,screen=screen):
         self.lx = lx
         self.ty = ty
         self.width = width
@@ -910,7 +911,6 @@ class Bullet_trail:
 class GameWorld:
     def __init__(self):
         self.seconds_passed = 0
-        self.virus_count = 1
         self.current_time = 0
         self.initializing_next_wave = True
         self.objects = []
@@ -931,7 +931,11 @@ class GameWorld:
         self.current_wave = 1
         self.victory = False
 
-        self.laser_charge_text_box = Text_box(600,750,300,100,(255,255,255),str(self.player.laser_charge)+"%",False)
+        self.widgets = []
+        self.active_widgets = []
+
+
+        self.laser_charge_text_box = Text_box(600,750,300,100,(255,255,255),str(self.player.laser_charge)+"%",False,self)
         self.laser_charge_text_box.active = False
 
         self.players = [self.player]
@@ -939,7 +943,7 @@ class GameWorld:
         self.seconds = 0
         self.text_surface = None
         self.bullet_system = Bullet_trail()
-        self.active_widgets = []
+
 
         self.ss = pygame.mixer.Sound(os.path.join('sounds', 'SneSni.wav'))
         self.am = pygame.mixer.Sound(os.path.join('sounds', 'AMis.wav'))
@@ -948,40 +952,46 @@ class GameWorld:
         self.SoTI = pygame.mixer.Sound(os.path.join('sounds', 'SoTI.wav'))
         self.music_played = False
 
-        self.start_button = StartButton(450,600,300,100,(255,255,255),"start")
 
-        self.settings_button = SettingsButton(850,600,300,100,(255,255,255),"settings")
 
-        self.enemies_text_box = Text_box(450,300,300,100,(255,255,255),"enemies",False)
-        self.enemies_counter = Text_box(550,400,300,100,(255,255,255),"1",True)
+        self.start_button = StartButton(450,600,300,100,(255,255,255),"start",self)
 
-        self.back_button = BackButton(250,200,300,100,(255,255,255),"<")
+        self.settings_button = SettingsButton(850,600,300,100,(255,255,255),"settings",self)
 
-        self.congrats = Text_box(450,200,200,100,(255,255,255),"congrats",False)
+        self.enemies_text_box = Text_box(450,300,300,75,(255,255,255),"enemies",False,self)
+        self.enemies_counter = Text_box(550,400,100,50,(255,255,255),"1",True,self)
 
-        self.you_lose = Text_box(450,200,200,100,(255,255,255),"you lose",False)
+        self.viruses_text_box = Text_box(450,500,300,75,(255,255,255),"viruses",False,self)
+        self.viruses_counter = Text_box(550,600,100,50,(255,255,255),"0",True,self)
+        self.virus_count = int(self.viruses_counter.text)
 
-        self.enemies_defeated = Text_box(450,300,500,100,(255,255,255),"Enemies defeated: 0",False)
+        self.back_button = BackButton(50,50,100,70,(255,255,255),"<",self)
+
+        self.congrats = Text_box(450,100,200,100,(255,255,255),"congrats",False,self)
+
+        self.you_lose = Text_box(450,100,200,100,(255,255,255),"you lose",False,self)
+
+        self.enemies_defeated = Text_box(450,200,500,100,(255,255,255),"Enemies defeated: 0",False,self)
         self.enemies_defeated_count = 0
 
-        self.grenades_launched = Text_box(450,400,500,100,(255,255,255),"Grenades launched: 0",False)
+        self.grenades_launched = Text_box(450,300,500,100,(255,255,255),"Grenades launched: 0",False,self)
         self.grenades_launched_count = 0
 
-        self.viruses_defeated = Text_box(450,500,500,100,(255,255,255),"Viruses defeated: 0",False)
+        self.viruses_defeated = Text_box(450,400,500,100,(255,255,255),"Viruses defeated: 0",False,self)
         self.viruses_defeated_count = 0
 
-        self.bacteria_defeated = Text_box(450,600,500,100,(255,255,255),"Bacteria defeated: 0",False)
+        self.bacteria_defeated = Text_box(450,500,500,100,(255,255,255),"Bacteria defeated: 0",False,self)
         self.bacteria_defeated_count = 0
 
-        self.shots_fired = Text_box(450,700,500,100,(255,255,255),"Shots fired: 0",False)
+        self.shots_fired = Text_box(450,600,500,100,(255,255,255),"Shots fired: 0",False,self)
         self.shots_fired_count = 0
 
-        self.wave_text_box = Text_box(600,50,300,75,(255,255,255),"wave 1",False)
-        self.wave_text_box.active = False
-        self.next_wave_time = Text_box(500,250,200,100,(255,255,255),"0:05",False)
-        self.next_wave_time.active = False
+        self.waves_reached = Text_box(450,700,500,100,(255,255,255),"Wave reached: 1",False,self)
 
-        self.widgets = [self.shots_fired,self.enemies_defeated,self.grenades_launched,self.viruses_defeated,self.bacteria_defeated,self.you_lose, self.congrats, self.start_button, self.settings_button,self.enemies_text_box,self.enemies_counter,self.enemies_counter.plus_button,self.enemies_counter.minus_button,self.back_button,self.laser_charge_text_box,self.wave_text_box,self.next_wave_time]
+        self.wave_text_box = Text_box(50,25,250,50,(255,255,255),"wave 1",False,self)
+        self.wave_text_box.active = False
+        self.next_wave_time = Text_box(50,100,200,75,(255,255,255),"0:05",False,self)
+        self.next_wave_time.active = False
 
     def handle_inputs(self):
         global running, main_menu
@@ -1250,6 +1260,7 @@ class GameWorld:
                     self.seconds_passed = 0
                     self.next_wave_time.update(f"0:0{int(5 - self.seconds_passed)}")
                     self.current_wave += 1
+                    self.waves_reached.update(f"Waves reached: {self.current_wave}")
                     if self.current_wave == 11:
                         print("Victory")
                         self.victory = True
@@ -1261,7 +1272,8 @@ class GameWorld:
                     self.next_wave_time.active = False
                     self.initializing_next_wave = True
                     self.enemies_counter.text = str(int(self.enemies_counter.text) + 1)
-                    self.initialize_enemies(int(world.enemies_counter.text), self.virus_count)
+                    self.viruses_counter.text = str(int(self.viruses_counter.text) + 1)
+                    self.initialize_enemies(int(world.enemies_counter.text), int(world.viruses_counter.text))
                     self.objects = []
                     self.initialise_world_objects()
 
@@ -1293,6 +1305,7 @@ class GameWorld:
             self.bacteria_defeated.active = True
             self.viruses_defeated.active = True
             self.shots_fired.active = True
+            self.waves_reached.active = True
 
 
 
@@ -1343,6 +1356,8 @@ class GameWorld:
         self.enemies_text_box.active = True
         self.enemies_counter.active = True
         self.back_button.active = True
+        self.viruses_counter.active = True
+        self.viruses_text_box.active = True
 
     def handle_soundtrack(self):
         if self.music_played == False:
