@@ -68,6 +68,8 @@ class BackButton(Widget):
         for button in world.widgets:
             button.active = False
 
+        world.settings_open = False
+
         world.start_button.active = True
         world.settings_button.active = True
 
@@ -592,7 +594,6 @@ class Enemy:
         self.SPEED = 3
         self.health = 100
         self.colour = (255,255,255)
-        self.got_hit_this_frame = False
         self.can_move = 1
         self.enemies_nearby = 0
         self.last_hit_time = -1
@@ -606,24 +607,10 @@ class Enemy:
             imp.set_colorkey((0, 0, 0))
             imp.convert_alpha()
             self.image_list.insert(0,imp)
-    '''
-    def get_hit(self,bullets):
-        found = False
-        index = 0
-        while not found and index < len(bullets):
-            if calc_distance_circle_and_point(self, bullets[index]) <= 0 and self.got_hit_this_frame == False:
-                self.health -= 20
-                self.got_hit_this_frame = True
-                print("oof")
-                print(self.colour)
-                found = True
-            else:
-                index += 1
-    '''
+
     def take_damage_from_sword(self,sword_xvector,sword_yvector):
         print("enemy hit")
         self.health -= 30
-        self.got_hit_this_frame = True
         self.sword_target.wcx = self.wcx + sword_xvector *1000
         self.sword_target.wcy = self.wcy + sword_yvector *1000
         if self.health <= 0:
@@ -641,19 +628,12 @@ class Enemy:
 
 
     def evaluate_health(self):
-        if 100 >= (self.health) >= 1:
-            self.colour =(255,255 * (self.health / 100),255)
-            screen.blit(self.image_list[self.health//11], (self.cx-32,self.cy-32))
-            #print(self.image_list)
         if self.health <= 0:
             self.can_move = 0
             if self in world.enemies:
                 world.enemies.remove(self)
                 world.enemies_defeated_count += 1
                 world.bacteria_defeated_count += 1
-
-    def clean_up(self):
-        self.got_hit_this_frame = False
 
     def scan_for_friendlies(self,enemies):
         self.enemies_nearby = 0
@@ -663,6 +643,10 @@ class Enemy:
 
 
     def draw(self):
+        if 100 >= (self.health) >= 1:
+            self.colour = (255, 255 * (self.health / 100), 255)
+            screen.blit(self.image_list[self.health // 11], (self.cx - 32, self.cy - 32))
+            # print(self.image_list)
         if debugging:
             pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
 
@@ -957,6 +941,7 @@ class GameWorld:
         self.start_button = StartButton(450,600,300,100,(255,255,255),"start",self)
 
         self.settings_button = SettingsButton(850,600,300,100,(255,255,255),"settings",self)
+        self.settings_open = False
 
         self.enemies_text_box = Text_box(450,300,300,75,(255,255,255),"enemies",False,self)
         self.enemies_counter = Text_box(550,400,100,50,(255,255,255),"1",True,self)
@@ -992,6 +977,10 @@ class GameWorld:
         self.wave_text_box.active = False
         self.next_wave_time = Text_box(50,100,200,75,(255,255,255),"0:05",False,self)
         self.next_wave_time.active = False
+
+        self.msf = Text_box(900,300,500,100,(255,255,255),"Are you sure about this?",False,self)
+        self.emsf = Text_box(900,450,500,100,(255,255,255),"The game is going to be impossible",False,self)
+        self.eemsf = Text_box(900,600,500,100,(255,255,255),"Well, you asked for it",False,self)
 
     def handle_inputs(self):
         global running, main_menu
@@ -1072,6 +1061,22 @@ class GameWorld:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.handle_buttons()
 
+        if self.player.health <= 0:
+            self.music_played = False
+            self.handle_soundtrack()
+
+        if int(self.viruses_counter.text) + int(self.enemies_counter.text) >= 27 and self.settings_open:
+            self.msf.active = True
+        else:
+            self.msf.active = False
+        if int(self.viruses_counter.text) + int(self.enemies_counter.text) >= 37 and self.settings_open:
+            self.emsf.active = True
+        else:
+            self.emsf.active = False
+        if int(self.viruses_counter.text) + int(self.enemies_counter.text) >= 47 and self.settings_open:
+            self.eemsf.active = True
+        else:
+            self.eemsf.active = False
     def draw_island_and_background(self):
         screen.fill((107, 191, 255))
         self.island.draw()
@@ -1080,10 +1085,10 @@ class GameWorld:
         if debugging:
             self.camera_follow.draw()
         self.player.draw()
-        for tree in self.trees:
-            tree.draw()
         for enemy in self.enemies:
             enemy.draw()
+        for tree in self.trees:
+            tree.draw()
 
     def handle_sword_logic(self):
         for enemy in self.enemies:
@@ -1224,7 +1229,6 @@ class GameWorld:
 
         for enemy in self.enemies:
             enemy.evaluate_health()
-            enemy.clean_up()
             enemy.scan_for_friendlies(self.enemies)
             # print(enemy.health)
         for virus in self.viruses:
@@ -1232,7 +1236,6 @@ class GameWorld:
                 self.current_enemy_id = virus.clone_if_can(self.enemies, self.current_enemy_id)
                 virus.decrement_cooldown()
             virus.evaluate_health()
-            virus.clean_up()
             virus.scan_for_friendlies(self.enemies)
         self.camera_follow.scan_for_player(self.player)
         self.update_collision_hitboxes()
@@ -1358,12 +1361,15 @@ class GameWorld:
         self.back_button.active = True
         self.viruses_counter.active = True
         self.viruses_text_box.active = True
+        self.settings_open = True
 
     def handle_soundtrack(self):
         if self.music_played == False:
             pygame.mixer.stop()
             self.music_played = True
-            if 1 <= self.current_wave <= 2:
+            if self.player.health <= 0:
+                pass
+            elif 1 <= self.current_wave <= 2:
                 self.ss.play(-1)
                 print("Playing ss")
             elif 3 <= self.current_wave <= 4:
@@ -1394,15 +1400,15 @@ while running:
 
         world.draw_island_and_background()
 
+        world.handle_inputs() #Handles left click, right click, g key, f key and movement
+
+        world.draw_bullet_trail()
+
         world.draw_enemies_player_and_trees()
 
         world.handle_sword_logic()
 
         world.keys = pygame.key.get_pressed()
-
-        world.handle_inputs() #Handles left click, right click, g key, f key and movement
-
-        world.draw_bullet_trail()
 
         world.player.update_position()
 
