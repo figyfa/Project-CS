@@ -982,6 +982,12 @@ class GameWorld:
         self.emsf = Text_box(900,450,500,100,(255,255,255),"The game is going to be impossible",False,self)
         self.eemsf = Text_box(900,600,500,100,(255,255,255),"Well, you asked for it",False,self)
 
+        self.tutorial_surface = pygame.Surface((1500,900))
+
+        self.tutorial_movement = Text_box(350,600,300,100,(255,255,255),"WASD to move",False,self)
+        self.tutorial_gun = Text_box(750,600,300,100,(255,255,255),"left click to shoot",False,self)
+
+
     def handle_inputs(self):
         global running, main_menu
         for event in pygame.event.get():
@@ -1222,8 +1228,7 @@ class GameWorld:
 
         #print(self.active_widgets)
 
-        for button in self.active_widgets:
-            button.draw(screen)
+        self.draw_buttons(screen)
 
         self.laser_charge_text_box.update(str(self.player.laser_charge) + "%")
 
@@ -1385,10 +1390,20 @@ class GameWorld:
                 self.SoTI.play(-1)
                 print("SoTIs")
 
+    def update_tutorial_frames(self):
+        self.active_widgets = []
+
+        for button in self.widgets:
+            if button.active:
+                self.active_widgets.append(button)
+
+        self.draw_buttons(self.tutorial_surface)
+
 
 world = GameWorld()
 singleplayer = True
 main_menu = True
+tutorial_active = True
 
 
 while running:
@@ -1400,30 +1415,50 @@ while running:
 
         world.draw_island_and_background()
 
-        world.handle_inputs() #Handles left click, right click, g key, f key and movement
+        world.handle_inputs()  # Handles left click, right click, g key, f key and movement
 
-        world.draw_bullet_trail()
+        if not tutorial_active:
 
-        world.draw_enemies_player_and_trees()
+            world.draw_bullet_trail()
 
-        world.handle_sword_logic()
+            world.draw_enemies_player_and_trees()
 
-        world.keys = pygame.key.get_pressed()
+            world.handle_sword_logic()
 
-        world.player.update_position()
+            world.keys = pygame.key.get_pressed()
 
-        world.player.walking_spot_permissions = [True for i in range(8)]
+            world.player.update_position()
 
-        world.update_item_positions_relative_to_camera()
+            world.player.walking_spot_permissions = [True for i in range(8)]
 
-        world.draw_buttons(screen)
+            world.update_item_positions_relative_to_camera()
 
-        if debugging:
-            world.allow_debug_options() # Eg press h to return to initial positions
+            world.draw_buttons(screen)
 
-        world.reset_and_prepare_for_next_frame()
+            if debugging:
+                world.allow_debug_options() # Eg press h to return to initial positions
 
-        world.handle_soundtrack()
+            world.reset_and_prepare_for_next_frame()
+
+            world.handle_soundtrack()
+        else:
+            world.tutorial_movement.active = True
+            world.tutorial_gun.active = True
+
+            world.tutorial_surface.set_alpha(128)
+            world.tutorial_surface.fill((255, 255, 255))
+
+            world.update_tutorial_frames()
+
+            world.draw_enemies_player_and_trees()
+
+            screen.blit(world.tutorial_surface, (0, 0))
+            print("Drawing text")
+
+
+
+
+
 
         fpsClock.tick(FPS)
     pygame.display.flip()
