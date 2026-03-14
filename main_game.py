@@ -85,6 +85,7 @@ class StartButton(Widget):
 
         world.laser_charge_text_box.active = True
         world.wave_text_box.active = True
+        world.laser_status_text_box.active = True
 
         world.initialize_enemies(int(world.enemies_counter.text), int(world.viruses_counter.text))
 
@@ -920,7 +921,7 @@ class GameWorld:
 
 
         self.laser_charge_text_box = Text_box(600,750,300,100,(255,255,255),str(self.player.laser_charge)+"%",False,self)
-        self.laser_charge_text_box.active = False
+        self.laser_status_text_box = Text_box(600,850,300,50,(255,255,255),"Laser not ready",False,self)
 
         self.players = [self.player]
         self.frames = 0
@@ -984,8 +985,20 @@ class GameWorld:
 
         self.tutorial_surface = pygame.Surface((1500,900))
 
+        self.tutorial_stage = 0
+
+        self.click_to_continue = Text_box(1050,750,400,100,(255,255,255),"Click anywhere to continue",False,self)
+
         self.tutorial_movement = Text_box(350,600,300,100,(255,255,255),"WASD to move",False,self)
-        self.tutorial_gun = Text_box(750,600,300,100,(255,255,255),"left click to shoot",False,self)
+        self.sprint_tutorial = Text_box(350,675,300,50,(255,255,255),"shift to sprint",False,self)
+        self.tutorial_gun = Text_box(850,600,300,100,(255,255,255),"left click to shoot",False,self)
+
+        self.tutorial_sword = Text_box(250,600,400,100,(255,255,255),"right click to swing sword",False,self)
+        self.tutorial_grenade = Text_box(850,600,400,100,(255,255,255),"press g to launch a grenade",False,self)
+
+        self.tutorial_laser = Text_box(425,600,650,100,(255,255,255),"Hold f to fire laser when charge is over 50%",False,self)
+
+        self.current_time_after_wave_began = 0
 
 
     def handle_inputs(self):
@@ -1001,6 +1014,9 @@ class GameWorld:
 
                     self.handle_buttons()
                     # print(enemy.health)
+                    if tutorial_active:
+                        self.tutorial_stage += 1
+
 
                 if event.button == 3:
                     mouse_pos = pygame.mouse.get_pos()
@@ -1025,7 +1041,8 @@ class GameWorld:
 
         self.handle_laser_inputs()
 
-        self.handle_movement() # Handles player movement
+        if not tutorial_active:
+            self.handle_movement() # Handles player movement
 
     def initialize_enemies(self,enemy_count,virus_count):
         for i in range(enemy_count):  # How many enemies
@@ -1156,16 +1173,17 @@ class GameWorld:
         return key_g_held_down, key_g_not_pressed
 
     def handle_laser_inputs(self):
-        if self.keys[pygame.K_f] and self.player.laser_charge > 50:
-            self.player.firing_laser = True
-        if self.player.firing_laser:
-            self.player.fire_laser()
-            self.player.check_laser_hit(self.enemies)
-            self.player.decrease_laser_charge()
-        if not self.keys[pygame.K_f] or self.player.laser_charge <= 0:
-            self.player.firing_laser = False
-        if not self.player.firing_laser and self.player.laser_charge <= 99:
-            self.player.increase_laser_charge()
+        if not tutorial_active:
+            if self.keys[pygame.K_f] and self.player.laser_charge > 50:
+                self.player.firing_laser = True
+            if self.player.firing_laser:
+                self.player.fire_laser()
+                self.player.check_laser_hit(self.enemies)
+                self.player.decrease_laser_charge()
+            if not self.keys[pygame.K_f] or self.player.laser_charge <= 0:
+                self.player.firing_laser = False
+            if not self.player.firing_laser and self.player.laser_charge <= 99:
+                self.player.increase_laser_charge()
 
     def handle_movement(self):
         if self.keys[pygame.K_LSHIFT]:
@@ -1215,7 +1233,7 @@ class GameWorld:
             item.cy = item.wcy - self.camera_follow.cam_cy
 
     def reset_and_prepare_for_next_frame(self):
-        global main_menu
+        global main_menu, tutorial_active
         self.bullet_system.clean_shot()
         main_menu = self.player.update_health()
         self.health_bar.draw()
@@ -1231,6 +1249,15 @@ class GameWorld:
         self.draw_buttons(screen)
 
         self.laser_charge_text_box.update(str(self.player.laser_charge) + "%")
+        if self.player.firing_laser:
+            self.laser_status_text_box.update("Laser is firing")
+            self.laser_status_text_box.color = (255,255,0)
+        elif self.player.laser_charge <= 50:
+            self.laser_status_text_box.update("Laser not ready")
+            self.laser_status_text_box.color = (255,0,0)
+        else:
+            self.laser_status_text_box.update("Laser ready")
+            self.laser_status_text_box.color = (0,255,0)
 
         for enemy in self.enemies:
             enemy.evaluate_health()
@@ -1266,8 +1293,10 @@ class GameWorld:
                 self.next_wave_time.update(f"0:0{int(5 - self.seconds_passed)}")
                 if self.seconds_passed >= 5:
                     self.seconds_passed = 0
+                    self.current_time_after_wave_began = 0
                     self.next_wave_time.update(f"0:0{int(5 - self.seconds_passed)}")
                     self.current_wave += 1
+
                     self.waves_reached.update(f"Waves reached: {self.current_wave}")
                     if self.current_wave == 11:
                         print("Victory")
@@ -1284,6 +1313,16 @@ class GameWorld:
                     self.initialize_enemies(int(world.enemies_counter.text), int(world.viruses_counter.text))
                     self.objects = []
                     self.initialise_world_objects()
+
+        self.current_time_after_wave_began += (1/FPS)
+        #Handle subsequent tutorial messages
+        if self.current_wave == 2 and tutorial_selected and self.current_time_after_wave_began == (2/FPS):
+            self.tutorial_stage += 1
+            tutorial_active = True
+
+        if self.current_wave == 3 and tutorial_selected and self.current_time_after_wave_began == (2/FPS):
+            self.tutorial_stage += 1
+            tutorial_active = True
 
         if main_menu:
             self.grenades_launched.update("Grenades launched: "+str(self.grenades_launched_count))
@@ -1391,19 +1430,24 @@ class GameWorld:
                 print("SoTIs")
 
     def update_tutorial_frames(self):
+        global running
         self.active_widgets = []
 
         for button in self.widgets:
             if button.active:
                 self.active_widgets.append(button)
 
-        self.draw_buttons(self.tutorial_surface)
-
+        self.draw_buttons(screen)
 
 world = GameWorld()
 singleplayer = True
 main_menu = True
-tutorial_active = True
+tutorial_selected = True
+
+if tutorial_selected:
+    tutorial_active = True
+else:
+    tutorial_active = False
 
 
 while running:
@@ -1442,18 +1486,53 @@ while running:
 
             world.handle_soundtrack()
         else:
-            world.tutorial_movement.active = True
-            world.tutorial_gun.active = True
+            if world.tutorial_stage == 0:
+                world.tutorial_movement.active = True
+                world.tutorial_gun.active = True
+                world.click_to_continue.active = True
+                world.sprint_tutorial.active = True
 
-            world.tutorial_surface.set_alpha(128)
-            world.tutorial_surface.fill((255, 255, 255))
+                world.tutorial_surface.set_alpha(128)
+                world.tutorial_surface.fill((255, 255, 255))
 
-            world.update_tutorial_frames()
+                world.draw_enemies_player_and_trees()
 
-            world.draw_enemies_player_and_trees()
+                screen.blit(world.tutorial_surface, (0, 0))
 
-            screen.blit(world.tutorial_surface, (0, 0))
-            print("Drawing text")
+                world.update_tutorial_frames()
+            elif world.tutorial_stage == 2:
+                world.click_to_continue.active = True
+                world.tutorial_sword.active = True
+                world.tutorial_grenade.active = True
+
+
+
+                world.draw_enemies_player_and_trees()
+
+                screen.blit(world.tutorial_surface, (0, 0))
+
+                world.update_tutorial_frames()
+
+            elif world.tutorial_stage == 4:
+                world.click_to_continue.active = True
+                world.tutorial_laser.active = True
+
+                world.draw_enemies_player_and_trees()
+
+                screen.blit(world.tutorial_surface, (0, 0))
+
+                world.update_tutorial_frames()
+
+            elif world.tutorial_stage % 2 == 1:
+                world.tutorial_movement.active = False
+                world.tutorial_gun.active = False
+                world.sprint_tutorial.active = False
+                world.tutorial_grenade.active = False
+                world.tutorial_sword.active = False
+                world.click_to_continue.active = False
+                world.tutorial_laser.active = False
+                tutorial_active = False
+
 
 
 
