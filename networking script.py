@@ -1,18 +1,16 @@
-import asyncio
-import json
+# Import socket module 
+import socket             
 
-async def broadcast_state(game_to_net, clients):
-    while True:
-        msg = game_to_net.get()
-        encoded = json.dumps(msg).encode() + b"\n"
+# Create a socket object 
+s = socket.socket()         
 
-        dead = []
-        for writer in list(clients):
-            try:
-                writer.write(encoded)
-                await writer.drain()
-            except:
-                dead.append(writer)
+# Define the port on which you want to connect 
+port = 12345                
 
-        for w in dead:
-            clients.remove(w)
+# connect to the server on local computer 
+s.connect(('127.0.0.1', port)) 
+
+# receive data from the server and decoding to get the string.
+print (s.recv(1024).decode())
+# close the connection 
+s.close()     

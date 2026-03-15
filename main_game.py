@@ -1,7 +1,6 @@
 import pygame
 import math
 import random
-import socket
 import os
 
 MOVE_COUNTER = 10
@@ -28,13 +27,17 @@ fpsClock = pygame.time.Clock()
 pygame.display.set_caption("Game")
 
 def calc_distance(pointA, pointB):
+    """ Method used to calculate the distance between two circles with a coordinates and a radius"""
     return math.sqrt((pointA.wcx - pointB.wcx)**2 + (pointA.wcy - pointB.wcy)**2) - pointA.radius - pointB.radius
 
 def calc_distance_circle_and_point(pointA, pointB):
+    """ Method used to calculate the distance between a circle with a coordinate and radius and a tuple or list of
+    size 2 containing coordinates"""
     return math.sqrt((pointA.wcx - pointB[0]-world.camera_follow.cam_cx)**2 + (pointA.wcy - pointB[1] - world.camera_follow.cam_cy)**2) - pointA.radius
 
 
-class Widget():
+class Widget:
+    """ The Widget class is an abstract class that represents a single widget on the screen """
     def __init__(self, x, y, width, height, color,text,game):
         self.cx = x
         self.cy = y
@@ -52,19 +55,23 @@ class Widget():
         game.widgets.append(self)
 
     def draw(self,screen):
+        """ Method used to draw the widget on the screen """
         self.text_render = self.font.render(self.text, True, self.text_color)
         pygame.draw.rect(screen, self.color, self.rect)
         screen.blit(self.text_render, self.center_rect)
 
     def execute_command(self):
+        """ Virtual method used to execute the command of a button"""
         pass
 
 class BackButton(Widget):
+    """ Button used to return from the settings menu back to the main menu """
     def __init__(self, x, y, width, height, color,text,game):
         super().__init__(x,y,width,height,color,text,game)
         self.active = False
 
     def execute_command(self):
+        """ Sets all widgets to false and activates the widgets that make up the main menu """
         for button in world.widgets:
             button.active = False
 
@@ -74,56 +81,68 @@ class BackButton(Widget):
         world.settings_button.active = True
 
 class StartButton(Widget):
+    """ Button used to start the game """
     def __init__(self, x, y, width, height, color, text,game):
         super().__init__(x, y, width, height, color, text,game)
 
     def execute_command(self):
+        """ Sets all widgets to false, initializes enemies and initializes the world objects """
         global main_menu
         main_menu = False
         self.active = False
         world.settings_button.active = False
 
-        world.laser_charge_text_box.active = True
+        if not world.tutorial_selected:
+            world.laser_charge_text_box.active = True
+            world.laser_status_text_box.active = True
+
         world.wave_text_box.active = True
-        world.laser_status_text_box.active = True
 
         world.initialize_enemies(int(world.enemies_counter.text), int(world.viruses_counter.text))
 
         world.initialise_world_objects()
 
 class SettingsButton(Widget):
+    """ Button used to enter the settings menu"""
     def __init__(self, x, y, width, height, color, text,game):
         super().__init__(x,y,width,height,color,text,game)
 
     def execute_command(self):
+        """ Deactivates the settings button and call the method to open the settings menu"""
         self.active = False
         world.open_settings()
 
 class Plus_button(Widget):
+    """ Button used to increment value of parent text box """
     def __init__(self, x, y, width, height, color,text_box,game):
         super().__init__(x,y,width,height,color,"+",game)
         self.text_box = text_box
 
     def execute_command(self):
+        """ Increments the value in parent's text box by 1 """
         print(self.text_box.text)
         self.text_box.text = str(int(self.text_box.text)+1)
 
 class Minus_button(Widget):
+    """ Button used to decrement value of parent text box """
     def __init__(self, x, y, width, height, color,text_box,game):
         super().__init__(x,y,width,height,color,"-",game)
         self.text_box = text_box
 
     def execute_command(self):
+        """ Decrements the value in parent's text box by 1 '"""
         if self.text_box.text != "0":
             print(self.text_box.text)
             self.text_box.text = str(int(self.text_box.text)-1)
 
 class Text_box(Widget):
+    """ A widget used for the sole purpose of displaying text to the user """
     def __init__(self, x, y, width, height, color,text,adjustable,game):
         super().__init__(x,y,width,height,color,text,game)
         self.adjustable = adjustable
         self.active = False
 
+        # Creates plus and minus buttons either side of it if it is supposed to be adjustable
         if adjustable:
             self.plus_button = Plus_button(x+120, y, width-10, height, color,self,game)
             self.minus_button = Minus_button(x-100, y, width-10, height, color,self,game)
@@ -134,10 +153,12 @@ class Text_box(Widget):
             self.minus_button = None
 
     def update(self,text):
+        """ Updates the text in the text box """
         self.text = text
 
 
 class Island:
+    """ Circle representing the playable area """
     def __init__(self,colour, radius, cx, cy):
         self.colour = colour
         self.radius = radius
@@ -147,15 +168,11 @@ class Island:
         self.wcy = cy
 
     def draw(self):
+        """ Draws the circle onto the main screen """
         pygame.draw.circle(screen, (self.colour), (self.cx, self.cy), self.radius)
 
-class Gun:
-    def __init__(self):
-        self.equipped = True
-        self.hcx = 0
-        self.hcy = 0
-
 class Sword:
+    """ Used to represent one of the player's weapons """
     def __init__(self):
         self.cx = 0
         self.cy = 0
@@ -167,15 +184,18 @@ class Sword:
         self.yvector = 0
 
     def draw(self):
+        """ Draws a circle when the player swings with the sword """
         pygame.draw.circle(screen, (self.colour),(self.cx,self.cy),self.radius)
 
     def check_hit(self,enemies):
+        """ Iterates through enemies and stuns any enemy that collide with the sword"""
         for enemy in enemies:
             if calc_distance(enemy,self) <= 0:
                 enemy.take_damage_from_sword(world.sword.xvector,world.sword.yvector)
                 enemy.sword_stunned = True
 
 class Tree:
+    """ Class used to represent a tree"""
     def __init__(self,wcx,wcy):
         self.wcx = wcx
         self.wcy = wcy
@@ -184,12 +204,14 @@ class Tree:
         self.radius = 20
 
     def draw(self):
+        """ Draw the tree on the screen """
         pygame.draw.rect(screen,(150,75,0),(self.cx-18,self.cy-93,36,115))
         pygame.draw.circle(screen,(0,240,20),(self.cx,self.cy-163),72)
         if debugging:
             pygame.draw.circle(screen,(255,255,255),(self.cx,self.cy),self.radius)
 
 class BoundingBox:
+    """ Class representing area in which player should move or camera should move"""
     def __init__(self,lx=550,ty=300,width=400,height=250,screen=screen):
         self.lx = lx
         self.ty = ty
@@ -201,11 +223,13 @@ class BoundingBox:
         self.cam_cy = 0
 
     def draw(self):
+        """ Draws the bounding box on the screen, only used in debugging mode"""
         self.s.set_alpha(128)
         self.s.fill((255,255,255))
         self.screen.blit(self.s,(self.lx,self.ty))
 
     def scan_for_player(self,player):
+        """ Checks if there is a player heading inside the bounding box """
         if self.lx < player.hcx - 5 and player.hcx + 5 < (self.lx + self.width) and self.ty < player.hcy - 5 and (self.ty + self.height) > player.hcy:
             #print("player detected")
             player.in_camera = True
@@ -215,6 +239,7 @@ class BoundingBox:
             return False
 
 class Health_bar():
+    """ Used to represent the health bar of the player"""
     def __init__(self):
         self.cx = 5
         self.cy = (screen.get_height()-65)
@@ -222,6 +247,7 @@ class Health_bar():
         self.height = 50
 
     def draw(self):
+        """ Draws the health bar on the screen """
         pygame.draw.rect(screen,(0,0,0),(self.cx,self.cy,self.width,self.height))
         pygame.draw.rect(screen,(255,0,0),(self.cx,self.cy,self.width-((1-world.player.health/100)*self.width),self.height))
 
@@ -229,6 +255,7 @@ class Health_bar():
 
 
 class Player:
+    """ Class representing the player """
     def __init__(self,cx,cy):
         self.cx = cx
         self.cy = cy
@@ -276,6 +303,7 @@ class Player:
 
 
     def check_walkable(self,trees):
+        """ Checks to see if player is colliding with any trees """
         for i in range(len(trees)):
             for j in range(len(self.walking_spots)):
                 if calc_distance_circle_and_point(trees[i],self.walking_spots[j]) <= self.collision_radius:
@@ -295,6 +323,7 @@ class Player:
         self.downright_walkable = self.walking_spot_permissions[6]
         self.upright_walkable = self.walking_spot_permissions[7]
 
+    """ Handles movement of the player for each direction """
     def move_up(self,in_camera):
         if in_camera:
             move_ticker = MOVE_COUNTER
@@ -440,6 +469,7 @@ class Player:
         elif self.vy < 0:
             self.vy += 0.1
     def draw(self):
+        """ Draws the player onto the screen, if debugging mode is enabled, draws each of the player's walking spots as well"""
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
         if debugging:
             pygame.draw.circle(screen,(34,123,35),self.left,self.collision_radius)
@@ -450,8 +480,8 @@ class Player:
             pygame.draw.circle(screen,(34,123,35),self.upright,self.collision_radius)
             pygame.draw.circle(screen,(34,123,35),self.upleft,self.collision_radius)
             pygame.draw.circle(screen,(34,123,35),self.downleft,self.collision_radius)
-        #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
+        """ Handles the game ending sequence and player colour depending on their health """
         if self.health > 0:
             self.colour = (0,255 * (self.max_health - self.health)/self.max_health,0)
             return False
@@ -461,6 +491,7 @@ class Player:
                 widget.active = False
             return True
     def fire_laser(self):
+        """ Uses the mouse position and the player position to create a line of hitboxes that check and damage enemies"""
         mouse_pos = pygame.mouse.get_pos()
         mouse_pos = (mouse_pos[0] + world.camera_follow.cam_cx, mouse_pos[1] + world.camera_follow.cam_cy)
         magnitude = math.sqrt((mouse_pos[0] - self.wcx)**2 + (mouse_pos[1] - self.wcy)**2)
@@ -489,6 +520,7 @@ class Player:
 
 
     def check_laser_hit(self,enemies):
+        """ Checks if any enemies are touching the laser's hitboxes and damages them accordingly """
         for enemy in enemies:
             for circle in self.laser_trail:
                 circle = (circle[0]-world.camera_follow.cam_cx,circle[1]-world.camera_follow.cam_cy)
@@ -497,6 +529,7 @@ class Player:
         self.laser_trail = []
 
     def update_position(self):
+        """ Sets the player's camera coordinates to their world coordinates - the offset the camera has moved """
         self.cx = self.wcx - world.camera_follow.cam_cx
         self.cy = self.wcy - world.camera_follow.cam_cy
         if self.in_camera:
@@ -504,20 +537,24 @@ class Player:
             self.hcy = self.cy
 
     def decrease_laser_charge(self):
+        """ Decrements the laser's charge by 20 every second"""
         if world.frames % (FPS/20) == 0:
             self.laser_charge -= 1
 
     def increase_laser_charge(self):
+        """ Increments the laser charge by 1 every second"""
         if world.frames % FPS == 0:
             self.laser_charge += 1
 
 
 class Player2 (Player):
+    """ Class used to represent other players in the game world"""
     def __init__(self,cx,cy):
         super().__init__(cx,cy)
 
 
     def recv_and_send_data(self):
+        """ Handles sending and receiving data between multiple players """
         '''
 
 
@@ -560,15 +597,8 @@ class Player2 (Player):
         '''
         pass
 
-
-    def rectify(self):
-        self.cx = self.wcx - world.camera_follow.cam_cx
-        self.cy = self.wcy - world.camera_follow.cam_cy
-
-        print(f"Original data: {self.wcx},{self.wcy}")
-        print(f"Rectified data {self.cx} {self.cy}")
-
 class Target:
+    """ Class used to represent a target object, which is a small circle in the world at a point"""
     def __init__(self,wcx,wcy):
         self.cx = wcx + world.camera_follow.cam_cx
         self.cy = wcy + world.camera_follow.cam_cy
@@ -579,9 +609,11 @@ class Target:
         world.targets.append(self)
 
     def draw(self):
+        """ Draws the circle onto the main screen, only called when debugging mode is enabled """
         pygame.draw.circle(screen, (255,123,123), (int(self.cx),int(self.cy)),self.radius)
 
 class Enemy:
+    """ Class representing an enemy in the game world """
     def __init__(self,cx,cy,id):
         self.type = "e"
         self.id = id
@@ -610,6 +642,8 @@ class Enemy:
             self.image_list.insert(0,imp)
 
     def take_damage_from_sword(self,sword_xvector,sword_yvector):
+        """ Creates a sword target behind the enemy in the direction of the sword vector and removes 30 health from
+        the enemy"""
         print("enemy hit")
         self.health -= 30
         self.sword_target.wcx = self.wcx + sword_xvector *1000
@@ -620,6 +654,8 @@ class Enemy:
                 world.player.laser_charge = 100
 
     def recover_from_sword(self):
+        """ Waits until the enemy has been stunned for half a second, then declares the enemy as no longer being
+        stunned by the sword """
         if self.initialised == False:
             self.current_time = world.seconds + 0.5
             self.initialised = True
@@ -629,6 +665,7 @@ class Enemy:
 
 
     def evaluate_health(self):
+        """ If an enemy is defeated, it is removed from the list of enemies in the game world """
         if self.health <= 0:
             self.can_move = 0
             if self in world.enemies:
@@ -637,6 +674,7 @@ class Enemy:
                 world.bacteria_defeated_count += 1
 
     def scan_for_friendlies(self,enemies):
+        """ Detects how many enemies are nearby each frame """
         self.enemies_nearby = 0
         for enemy in enemies:
             if calc_distance(self,enemy) < 5 and enemy.health > 0:
@@ -644,6 +682,7 @@ class Enemy:
 
 
     def draw(self):
+        """ Draws the enemy and its sprite onto the main screen """
         if 100 >= (self.health) >= 1:
             self.colour = (255, 255 * (self.health / 100), 255)
             screen.blit(self.image_list[self.health // 11], (self.cx - 32, self.cy - 32))
@@ -652,12 +691,12 @@ class Enemy:
             pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
 
     def beeline(self,player):
+        """ Has the enemy move towards a general target with cx and cy attributes, and damage that target """
         angle = math.pi
 
         if player.cx - self.cx != 0:
             angle = math.atan((player.cy - self.cy)/(player.cx - self.cx))
 
-        #print(angle/math.pi*180)
         self.vx = -self.SPEED * math.cos(angle)
         self.vy = -self.SPEED * math.sin(angle)
 
@@ -672,17 +711,10 @@ class Enemy:
             if world.seconds > (self.last_hit_time + 0.7):
                 player.health -= 2
                 self.last_hit_time = world.seconds
-                #print("player hit")
-        '''
-        if calc_distance(self,player2) < 10 and self.health > 0:
-            if seconds > (self.last_hit_time + 0.7):
-                player2.health -= 2
-                self.last_hit_time = seconds
-                print("player hit")
-        '''
 
 
 class Virus(Enemy):
+    """ Class used to represent a virus type enemy in the game world """
     def __init__(self,enemy_id):
         super().__init__(random.randint(0,500),random.randint(0,500),enemy_id)
         self.target = Target(0,0)
@@ -695,9 +727,12 @@ class Virus(Enemy):
         self.counter = 0
         self.SPEED = 1
     def draw(self):
+        """ Draws a circle representing the virus onto the main screen """
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.radius)
 
     def evaluate_health(self):
+        """ Checks to see if the virus is alive, changing its colour to represent its health, and removing it from the list
+        of enemies if the virus has no more health """
         if 100 >= (self.health) >= 1:
             self.colour =(self.colour[0],255 * (self.health / 100),self.colour[2])
         if self.health <= 0:
@@ -708,6 +743,7 @@ class Virus(Enemy):
                 world.viruses_defeated_count += 1
 
     def clone_if_can(self,enemies,enemy_id):
+        """ If the cooldown for cloning is less than 0, a regular enemy is created at the viruses location """
         if self.clone_cooldown <= 0:
             self.clone_cooldown = 5
             enemies.insert(0,Enemy(self.wcx,self.wcy,enemy_id))
@@ -717,17 +753,13 @@ class Virus(Enemy):
         return enemy_id
 
     def decrement_cooldown(self):
+        """ Decreases the cloning ability cooldown for the viruses """
         self.clone_cooldown -= (1/FPS)
-
-    def get_target(self):
-        self.tx = random.randint(-30, 30) * 45
-        self.ty = random.randint(-30, 30) * 45
-        self.target = Target(self.wcx + self.tx, self.wcy + self.ty)
-        self.deciding_where = False
-        self.counter = 3
 
 
 class Grenade_v2:
+    """ Class used to represent a grenade object, which is thrown by the player and damages anything in a radius
+    around it """
     def __init__(self):
         self.cx = 0
         self.cy = 0
@@ -743,6 +775,7 @@ class Grenade_v2:
         self.target = (0,0)
 
     def cook(self):
+        """ Decrement the fuse timer on the grenade while it is being held """
         self.cx = world.player.cx
         self.cy = world.player.cy
         self.wcx = world.player.wcx
@@ -755,6 +788,7 @@ class Grenade_v2:
             self.explode()
 
     def throw(self,player,target=(0,0)):
+        """ have the grenade move towards the player's mouse position"""
         if not self.thrown:
             self.wcx = player.wcx
             self.wcy = player.wcy
@@ -802,6 +836,7 @@ class Grenade_v2:
         return target
 
     def explode(self):
+        """ Have the grenade explode, damaging anything around it """
         print("exploding")
         self.exploded = True
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy), self.radius)
@@ -816,6 +851,7 @@ class Grenade_v2:
             world.player.health = world.player.health - 30
 
 class Bullet_trail:
+    """ Class used to represent the player's main weapon """
     def __init__(self):
         self.cx = 0
         self.cy = 0
@@ -828,7 +864,7 @@ class Bullet_trail:
         self.fire_rate = 0
 
     def check_hit(self, enemies):
-        scanning_for_trees = True
+        """ Checks to see if there is anything colliding with the bullet hitboxes in the bullet_trail list """
         found = False
         index = 0
         got_hit_this_frame = False
@@ -864,6 +900,7 @@ class Bullet_trail:
             self.deadly_bullet = ()
 
     def create_shot(self,player,destination,fire_rate):
+        """ Creates a list of bullet hitboxes based on the player location and their mouse position"""
         world.shots_fired_count += 1
         if self.fire_rate <= 0:
             self.fire_rate = fire_rate
@@ -879,10 +916,12 @@ class Bullet_trail:
                 self.current_bullety += self.ystep
                 self.bullet_trail.append((self.current_bulletx, self.current_bullety))
     def decrement_cooldown(self,fire_rate):
+        """ Decreases the cooldown on the creation of a bullet trail """
         self.fire_rate = self.fire_rate - (1/FPS)
 
 
     def draw(self, player):
+        """ Draws the bullet trail onto the main screen, if debugging mode is enabled, the indvidual bullet hitboxes are drawn instead """
         if debugging:
             for bullet in self.bullet_trail:
                 pygame.draw.circle(screen, (123,123,123), (bullet[0],bullet[1]), 3)
@@ -890,10 +929,12 @@ class Bullet_trail:
             pygame.draw.line(screen,(238, 255, 0),(player.cx,player.cy),(self.deadly_bullet[0],self.deadly_bullet[1]),4)
 
     def clean_shot(self):
+        """ Empty the bullet trail list """
         self.bullet_trail = []
 
 
 class GameWorld:
+    """ Class representing the game world """
     def __init__(self):
         self.seconds_passed = 0
         self.current_time = 0
@@ -987,6 +1028,9 @@ class GameWorld:
 
         self.tutorial_stage = 0
 
+        self.tutorial_active = True
+        self.tutorial_selected = True
+
         self.click_to_continue = Text_box(1050,750,400,100,(255,255,255),"Click anywhere to continue",False,self)
 
         self.tutorial_movement = Text_box(350,600,300,100,(255,255,255),"WASD to move",False,self)
@@ -1002,6 +1046,7 @@ class GameWorld:
 
 
     def handle_inputs(self):
+        """ Handles all inputs the player can make in the game world """
         global running, main_menu
         for event in pygame.event.get():
 
@@ -1014,7 +1059,7 @@ class GameWorld:
 
                     self.handle_buttons()
                     # print(enemy.health)
-                    if tutorial_active:
+                    if self.tutorial_active:
                         self.tutorial_stage += 1
 
 
@@ -1041,10 +1086,11 @@ class GameWorld:
 
         self.handle_laser_inputs()
 
-        if not tutorial_active:
+        if not self.tutorial_active:
             self.handle_movement() # Handles player movement
 
     def initialize_enemies(self,enemy_count,virus_count):
+        """ Creates enemies and adds them to the list of viruses and enemies """
         for i in range(enemy_count):  # How many enemies
             self.enemies.append(Enemy(random.randint(0, 750), random.randint(0, 450), self.current_enemy_id))
             self.current_enemy_id += 1
@@ -1054,6 +1100,7 @@ class GameWorld:
             self.current_enemy_id += 1
 
     def update_collision_hitboxes(self):
+        """ Updates the walking spots of the player as they move around the world """
         self.player.left = (self.player.cx - 25, self.player.cy)
         self.player.up = (self.player.cx, self.player.cy - 25)
         self.player.right = (self.player.cx + 25, self.player.cy)
@@ -1064,6 +1111,7 @@ class GameWorld:
         self.player.upright = (self.player.cx + 18, self.player.cy - 18)
 
     def display_menu(self):
+        """ Displays the main meny before the game starts """
         global running,main_menu,menu_screen
         menu_screen.fill((255, 212, 45))
         self.draw_buttons(menu_screen)
@@ -1101,10 +1149,12 @@ class GameWorld:
         else:
             self.eemsf.active = False
     def draw_island_and_background(self):
+        """ Draws the island and the background """
         screen.fill((107, 191, 255))
         self.island.draw()
 
     def draw_enemies_player_and_trees(self):
+        """ Draws enemies, players and trees onto the main screen """
         if debugging:
             self.camera_follow.draw()
         self.player.draw()
@@ -1114,6 +1164,7 @@ class GameWorld:
             tree.draw()
 
     def handle_sword_logic(self):
+        """ Handles enemy movement when they have been stunned and when they have not been stunned by the sword"""
         for enemy in self.enemies:
             if debugging:
                 enemy.sword_target.draw()
@@ -1142,6 +1193,7 @@ class GameWorld:
                 enemy.recover_from_sword()
 
     def handle_grenade_logic(self, key_g_held_down, key_g_not_pressed):
+        """ Calls the grenade's methods depending on the player's inputs of the G key """
         mouse_pos = (0,0)
         if key_g_held_down and key_g_not_pressed:
             print("Created grenade")
@@ -1173,7 +1225,8 @@ class GameWorld:
         return key_g_held_down, key_g_not_pressed
 
     def handle_laser_inputs(self):
-        if not tutorial_active:
+        """ Calls the player's laser methods, depending on the user's input of the F key """
+        if not self.tutorial_active:
             if self.keys[pygame.K_f] and self.player.laser_charge > 50:
                 self.player.firing_laser = True
             if self.player.firing_laser:
@@ -1186,7 +1239,8 @@ class GameWorld:
                 self.player.increase_laser_charge()
 
     def handle_movement(self):
-        if self.keys[pygame.K_LSHIFT]:
+        """ Handles player's movement, depending on what movement keys the player has pressed down """
+        if self.keys[pygame.K_LSHIFT] or self.keys[pygame.K_RSHIFT]:
             self.player.sprinting = 2
         else:
             self.player.sprinting = 1
@@ -1224,16 +1278,21 @@ class GameWorld:
                 move_ticker = self.player.move_right(self.player.in_camera)
 
     def update_frames_and_time(self):
+        """ Increment's the number of frames and calculates the number of seconds that have passed since the
+        start of the game"""
         self.frames = self.frames + 1
         self.seconds = self.frames / FPS
 
     def update_item_positions_relative_to_camera(self):
+        """ Updates all items positions relative to the player's camera offset """
         for item in self.objects:
             item.cx = item.wcx - self.camera_follow.cam_cx
             item.cy = item.wcy - self.camera_follow.cam_cy
 
     def reset_and_prepare_for_next_frame(self):
-        global main_menu, tutorial_active
+        """ Calls key functions to reset certain objects in the game world and also checks to see if a new wave should
+        start or if the player has won or lost the game"""
+        global main_menu
         self.bullet_system.clean_shot()
         main_menu = self.player.update_health()
         self.health_bar.draw()
@@ -1318,11 +1377,13 @@ class GameWorld:
         #Handle subsequent tutorial messages
         if self.current_wave == 2 and tutorial_selected and self.current_time_after_wave_began == (2/FPS):
             self.tutorial_stage += 1
-            tutorial_active = True
+            self.tutorial_active = True
 
         if self.current_wave == 3 and tutorial_selected and self.current_time_after_wave_began == (2/FPS):
             self.tutorial_stage += 1
-            tutorial_active = True
+            self.tutorial_active = True
+            self.laser_charge_text_box.active = True
+            self.laser_status_text_box.active = True
 
         if main_menu:
             self.grenades_launched.update("Grenades launched: "+str(self.grenades_launched_count))
@@ -1359,10 +1420,12 @@ class GameWorld:
 
 
     def draw_bullet_trail(self):
+        """ Draws the bullet trail onto the main screen if there is one """
         if len(self.bullet_system.bullet_trail) > 0:
             self.bullet_system.draw(self.player)
 
     def allow_debug_options(self):
+        """ Allows certain keys to be pressed for debugging """
         if self.keys[pygame.K_UP]:
             self.player.in_camera = False
         if self.keys[pygame.K_h]:
@@ -1377,6 +1440,7 @@ class GameWorld:
         pygame.draw.circle(screen, (255, 50, 255), (self.player.hcx, self.player.hcy), 10)
 
     def initialise_world_objects(self):
+        """ Loads all viruses, enemies, targets, trees and the island into the world.objects list """
         self.objects.append(self.island)
         for i in range(len(self.trees)):
             self.objects.append(self.trees[i])
@@ -1388,15 +1452,18 @@ class GameWorld:
             world.objects.append(target)
 
     def draw_buttons(self,screen):
+        """ Draws any active buttons onto the screen """
         for button in self.active_widgets:
             button.draw(screen)
 
     def handle_buttons(self):
+        """ Check to see if any active button is colliding with the player's mouse position """
         for button in self.active_widgets:
             if button.rect.collidepoint(pygame.mouse.get_pos()):
                 button.execute_command()
 
     def open_settings(self):
+        """ Enables key widgets for the settings menu """
         for widget in self.widgets:
             widget.active = False
 
@@ -1408,6 +1475,7 @@ class GameWorld:
         self.settings_open = True
 
     def handle_soundtrack(self):
+        """ Plays the correct music depending on the wave number """
         if self.music_played == False:
             pygame.mixer.stop()
             self.music_played = True
@@ -1430,7 +1498,7 @@ class GameWorld:
                 print("SoTIs")
 
     def update_tutorial_frames(self):
-        global running
+        """ Updates the widgets used in the tutorial"""
         self.active_widgets = []
 
         for button in self.widgets:
@@ -1439,16 +1507,63 @@ class GameWorld:
 
         self.draw_buttons(screen)
 
+    def handle_tutorial(self):
+        """ Displays the correct widgets depending on the tutorial stage number"""
+        if self.tutorial_stage == 0:
+            self.tutorial_movement.active = True
+            self.tutorial_gun.active = True
+            self.click_to_continue.active = True
+            self.sprint_tutorial.active = True
+
+            self.tutorial_surface.set_alpha(128)
+            self.tutorial_surface.fill((255, 255, 255))
+
+            self.draw_enemies_player_and_trees()
+
+            screen.blit(self.tutorial_surface, (0, 0))
+
+            self.update_tutorial_frames()
+        elif self.tutorial_stage == 2:
+            self.click_to_continue.active = True
+            self.tutorial_sword.active = True
+            self.tutorial_grenade.active = True
+
+            self.draw_enemies_player_and_trees()
+
+            screen.blit(self.tutorial_surface, (0, 0))
+
+            self.update_tutorial_frames()
+
+        elif self.tutorial_stage == 4:
+            self.click_to_continue.active = True
+            self.tutorial_laser.active = True
+
+            self.draw_enemies_player_and_trees()
+
+            screen.blit(self.tutorial_surface, (0, 0))
+
+            self.update_tutorial_frames()
+
+        elif self.tutorial_stage % 2 == 1:
+            self.tutorial_movement.active = False
+            self.tutorial_gun.active = False
+            self.sprint_tutorial.active = False
+            self.tutorial_grenade.active = False
+            self.tutorial_sword.active = False
+            self.click_to_continue.active = False
+            self.tutorial_laser.active = False
+            self.tutorial_active = False
+
+
 world = GameWorld()
 singleplayer = True
 main_menu = True
 tutorial_selected = True
 
-if tutorial_selected:
-    tutorial_active = True
+if world.tutorial_selected:
+    world.tutorial_active = True
 else:
-    tutorial_active = False
-
+    world.tutorial_active = False
 
 while running:
 
@@ -1461,7 +1576,7 @@ while running:
 
         world.handle_inputs()  # Handles left click, right click, g key, f key and movement
 
-        if not tutorial_active:
+        if not world.tutorial_active:
 
             world.draw_bullet_trail()
 
@@ -1486,58 +1601,7 @@ while running:
 
             world.handle_soundtrack()
         else:
-            if world.tutorial_stage == 0:
-                world.tutorial_movement.active = True
-                world.tutorial_gun.active = True
-                world.click_to_continue.active = True
-                world.sprint_tutorial.active = True
-
-                world.tutorial_surface.set_alpha(128)
-                world.tutorial_surface.fill((255, 255, 255))
-
-                world.draw_enemies_player_and_trees()
-
-                screen.blit(world.tutorial_surface, (0, 0))
-
-                world.update_tutorial_frames()
-            elif world.tutorial_stage == 2:
-                world.click_to_continue.active = True
-                world.tutorial_sword.active = True
-                world.tutorial_grenade.active = True
-
-
-
-                world.draw_enemies_player_and_trees()
-
-                screen.blit(world.tutorial_surface, (0, 0))
-
-                world.update_tutorial_frames()
-
-            elif world.tutorial_stage == 4:
-                world.click_to_continue.active = True
-                world.tutorial_laser.active = True
-
-                world.draw_enemies_player_and_trees()
-
-                screen.blit(world.tutorial_surface, (0, 0))
-
-                world.update_tutorial_frames()
-
-            elif world.tutorial_stage % 2 == 1:
-                world.tutorial_movement.active = False
-                world.tutorial_gun.active = False
-                world.sprint_tutorial.active = False
-                world.tutorial_grenade.active = False
-                world.tutorial_sword.active = False
-                world.click_to_continue.active = False
-                world.tutorial_laser.active = False
-                tutorial_active = False
-
-
-
-
-
-
+            world.handle_tutorial()
 
         fpsClock.tick(FPS)
     pygame.display.flip()
