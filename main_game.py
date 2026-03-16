@@ -27,7 +27,7 @@ fpsClock = pygame.time.Clock()
 pygame.display.set_caption("Game")
 
 def calc_distance(pointA, pointB):
-    """ Method used to calculate the distance between two circles with a coordinates and a radius"""
+    """ Method used to calculate the distance between two circles with coordinates and a radius"""
     return math.sqrt((pointA.wcx - pointB.wcx)**2 + (pointA.wcy - pointB.wcy)**2) - pointA.radius - pointB.radius
 
 def calc_distance_circle_and_point(pointA, pointB):
@@ -1113,7 +1113,7 @@ class GameWorld:
     def display_menu(self):
         """ Displays the main meny before the game starts """
         global running,main_menu,menu_screen
-        menu_screen.fill((255, 212, 45))
+        menu_screen.fill((200,255,200))
         self.draw_buttons(menu_screen)
         screen.blit(menu_screen,(0,0))
         self.active_widgets = []
