@@ -112,18 +112,7 @@ class RestartButton(Widget):
         self.world.start_button.active = True
         self.world.settings_button.active = True
 
-        self.world.player.cx = 600
-        self.world.player.cy = 300
-        self.world.player.hcx = 600
-        self.world.player.hcy = 300
-        self.world.player.wcx = 600
-        self.world.player.wcy = 300
-        self.world.camera_follow.cam_cx = 0
-        self.world.camera_follow.cam_cy = 0
-        self.world.player.health = 100
-        self.world.enemies_counter.text = "1"
-        self.world.viruses_counter.text = "0"
-        self.world.current_wave = 1
+        self.world.restarted = True
 
 
 class SettingsButton(Widget):
@@ -1022,8 +1011,9 @@ class GameWorld:
         self.settings_button = SettingsButton(850,600,300,100,(255,255,255),"settings",self)
         self.settings_open = False
 
-        self.restart_button = RestartButton(850,350,370,100,(255,255,255),"click here to restart",self)
+        self.restart_button = RestartButton(1050,350,370,100,(255,255,255),"click here to restart",self)
         self.restart_button.active = False
+        self.restarted = False
 
         self.enemies_text_box = Text_box(450,300,300,75,(255,255,255),"enemies",False,self)
         self.enemies_counter = Text_box(550,400,100,50,(255,255,255),"1",True,self)
@@ -1607,6 +1597,10 @@ while world.running:
 
     if world.main_menu:
         world.display_menu()
+
+        if world.restarted == True:
+            world = GameWorld()
+            print("Created new game world")
     else:
         world.update_frames_and_time()
 
