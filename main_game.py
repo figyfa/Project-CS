@@ -286,8 +286,8 @@ class Player:
         self.colour = (0,0,0)
         self.laser_trail = []
         self.first_run = True
-        self.wcx = 600
-        self.wcy = 300
+        self.wcx = cx
+        self.wcy = cy
 
         self.world = world
 
