@@ -33,10 +33,11 @@ class TestBoundingBox:
         assert bounding_box.scan_for_player(player3) == False
         player4 = Player(950,550,world) # Player at bottom right corner of bounding box
         assert bounding_box.scan_for_player(player4) == False
-        player5 = Player(944,544,world)# Player close to edge of bounding box
+        player5 = Player(949,549,world)# Player close to edge of bounding box
         assert bounding_box.scan_for_player(player5) == True
 
 def test_player_update_health():
+    """Test to see if player death is handled correctly"""
     world = GameWorld()
     player = Player(600,350,world)
     assert player.update_health() == False # Player is alive, main menu should not be activated

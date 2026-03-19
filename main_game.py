@@ -14,7 +14,7 @@ pygame.init()
 
 pygame.mixer.init()
 
-
+pygame.mixer.set_num_channels(20)
 
 
 debugging = False
@@ -244,7 +244,7 @@ class BoundingBox:
 
     def scan_for_player(self,player):
         """ Checks if there is a player heading inside the bounding box """
-        if self.lx < player.hcx - 5 and player.hcx + 5 < (self.lx + self.width) and self.ty < player.hcy - 5 and (self.ty + self.height) > player.hcy:
+        if self.lx < player.hcx and player.hcx < (self.lx + self.width) and self.ty < player.hcy and (self.ty + self.height) > player.hcy:
             #print("player detected")
             player.in_camera = True
             return True
@@ -917,7 +917,7 @@ class Bullet_trail:
             if not found:
                 self.deadly_bullet = self.bullet_trail[-1]
         except:
-            self.deadly_bullet = ()
+            self.deadly_bullet = (0,0)
 
     def create_shot(self,player,destination,fire_rate):
         """ Creates a list of bullet hitboxes based on the player location and their mouse position"""
@@ -993,6 +993,8 @@ class GameWorld:
         self.text_surface = None
         self.bullet_system = Bullet_trail(self)
 
+        self.gunshot = pygame.mixer.Sound(os.path.join('sounds','Gunshot.wav'))
+        self.sword_sfx = pygame.mixer.Sound(os.path.join('sounds','sword_swing.wav'))
 
 
         self.ss = pygame.mixer.Sound(os.path.join('sounds', 'SneSni.wav'))
@@ -1083,16 +1085,21 @@ class GameWorld:
                 self.running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    self.bullet_system.create_shot(self.player, pygame.mouse.get_pos(), 0.1)
-                    self.bullet_system.check_hit(self.enemies)
+                    if not self.tutorial_active:
+                        self.bullet_system.create_shot(self.player, pygame.mouse.get_pos(), 0.1)
+                        self.bullet_system.check_hit(self.enemies)
 
-                    self.handle_buttons()
+                        pygame.mixer.find_channel().play(self.gunshot)
+
+                        self.handle_buttons()
                     # print(enemy.health)
-                    if self.tutorial_active:
+                    else:
                         self.tutorial_stage += 1
 
 
                 if event.button == 3:
+                    pygame.mixer.find_channel().play(self.sword_sfx)
+
                     mouse_pos = pygame.mouse.get_pos()
 
                     self.sword.xvector = mouse_pos[0] - self.player.cx
@@ -1188,6 +1195,9 @@ class GameWorld:
         self.player.draw(self.screen)
         for enemy in self.enemies:
             enemy.draw(self.screen)
+
+        self.trees = sorted(self.trees,key=lambda tree:tree.cy) #Order trees so that the ones with the lowest coordinates are drawn first
+
         for tree in self.trees:
             tree.draw(self.screen)
 
