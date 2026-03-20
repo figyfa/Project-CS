@@ -330,20 +330,17 @@ class Player:
         # Set each attribute to its corresponding walking spot permission in the list
 
     def move_up(self,in_camera):
-        """ Handle movement upwards"""
+        """Handle movement upwards"""
         if in_camera:
             move_ticker = MOVE_COUNTER
             self.hcy -= self.vy * self.sprinting
-            #self.cy = self.hcy
             self.wcy -= self.vy * self.sprinting
-            # print("Moving up",self.cx,self.cy)
             return move_ticker
         else:
             move_ticker = MOVE_COUNTER
             self.hcy -= self.vy * 10
             self.world.camera_follow.cam_cy -= self.vy * self.sprinting
             self.wcy -= self.vy * self.sprinting
-            # print("Moving up",self.cx,self.cy)
             return move_ticker
 
     def move_up_and_right(self,in_camera):
@@ -351,10 +348,8 @@ class Player:
         if in_camera:
             self.hcx += HYPOTENUSE * self.sprinting
             self.hcy += (self.vy - HYPOTENUSE) * self.sprinting
-            #self.cx = self.hcx
             self.wcx += HYPOTENUSE * self.sprinting
             self.wcy += (self.vy - HYPOTENUSE) * self.sprinting
-            # print("Moving up and right")
         else:
             self.hcx += HYPOTENUSE * 10
             self.hcy += (self.vy - HYPOTENUSE) * 10
@@ -362,7 +357,6 @@ class Player:
             self.world.camera_follow.cam_cy += (self.vy-HYPOTENUSE) * self.sprinting
             self.wcx += HYPOTENUSE * self.sprinting
             self.wcy += (self.vy-HYPOTENUSE) * self.sprinting
-            # print("Moving up and right")
 
     def move_up_and_left(self,in_camera):
         """Handle movement upwards and to the left"""
@@ -543,57 +537,6 @@ class Player:
         if self.world.frames % FPS == 0:
             self.laser_charge += 1
 
-
-class Player2 (Player):
-    """ Class used to represent other players in the game world"""
-    def __init__(self,cx,cy,world):
-        super().__init__(cx,cy,world)
-
-
-    def recv_and_send_data(self):
-        """ Handles sending and receiving data between multiple players """
-        '''
-
-
-        data_to_proxy = f"{int(player.wcx)} {int(player.wcy)} {int(player2.health)}"
-        print(f"Data to proxy {data_to_proxy}")
-        enemy_data = ''
-        print(f"world x:{player.wcx},world y: {player.wcy}, player1 health:{player.health}, player2 health:{player2.health}")
-        for enemy in enemies:
-            if enemy not in viruses:
-                enemy_data_temp = f" {int(enemy.wcx)} {int(enemy.wcy)} {int(enemy.health)} e"
-                enemy_data += enemy_data_temp
-            else:
-                enemy_data_temp = f" {int(enemy.wcx)} {int(enemy.wcy)} {int(enemy.health)} v"
-                enemy_data += enemy_data_temp
-        data_to_proxy += enemy_data
-        #print(f"Received {data}")
-        server_socket.send(data_to_proxy.encode())
-        #print(data)
-        #print(f"Sent {data_to_proxy}")
-        try:
-            data = server_socket.recv(1024)
-        except socket.timeout:
-            print("Connection timed out, starting singleplayer")
-            singleplayer = True
-            return singleplayer
-
-        data = data.decode().split(" ")
-        try:
-            print(data)
-            self.wcx = float(data[0])
-            self.wcy = float(data[1])
-
-            for enemy in enemies:
-                enemy.health = int(data[enemies.index(enemy)+2])
-        except:
-            print("Data not sent")
-
-        singleplayer = False
-        return singleplayer
-        '''
-        pass
-
 class Target:
     """ Class used to represent a target object, which is a small circle in the world at a point"""
     def __init__(self,wcx,wcy, world):
@@ -669,7 +612,7 @@ class Enemy:
             if self in self.world.enemies: # Remove enemy from list of enemies if it has died
                 self.world.enemies.remove(self)
                 self.world.enemies_defeated_count += 1
-                self.world.bacteria_defeated_count += 1
+                self.world.regular_enemy_defeated_count += 1
 
     def scan_for_friendlies(self,enemies):
         """ Detects how many enemies are nearby each frame """
@@ -843,7 +786,7 @@ class Grenade_v2:
                     if self.world.player.laser_charge > 100:
                         self.world.player.laser_charge = 100
 
-        #Check if any enemies are in blast radius and damage accordinly, credit player laser charge if an enemy dies
+        #Check if any enemies are in blast radius and damage accordingly, credit player laser charge if an enemy dies
         if calc_distance(self, self.world.player) < 0:
             self.world.player.health = self.world.player.health - 30
         # Damage the player if they are in the blast radius
@@ -922,7 +865,7 @@ class Bullet_trail:
 
 
     def draw(self, player, screen):
-        """ Draws the bullet trail onto the main screen, if debugging mode is enabled, the indvidual bullet hitboxes are drawn instead """
+        """Draws the bullet trail onto the main screen, if debugging mode is enabled, the indvidual bullet hitboxes are drawn instead """
         if debugging:
             for bullet in self.bullet_trail:
                 pygame.draw.circle(screen, (123,123,123), (bullet[0],bullet[1]), 3)
@@ -939,40 +882,40 @@ class GameWorld:
     def __init__(self):
         self.screen = pygame.display.set_mode((1500, 900))
         self.menu_screen = pygame.Surface((1500, 900))
+        # Initialise the menu screen, and the screen where the gameplay would take place
 
         self.seconds_passed = 0
-        self.current_time = 0
-        self.initializing_next_wave = True
-        self.objects = []
-        self.keys = pygame.key.get_pressed()
-        self.player = Player(600,300,self)
-        self.sword = Sword()
-        self.island = Island((0, 255, 60,50),1000,750,450,self)
-        self.enemies = []
-        self.viruses = []
-        self.current_enemy_id = 0
-        self.trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(15)] # How many trees
-        self.targets = []
+        self.current_time = 0 # Variables used to record the time at which an event has happened and how many seconds have passed since the event occurred
+        self.initializing_next_wave = True # Variable used to handle code which should be called only one when the wave has just ended
+        self.objects = [] # The list of all objects in the game world, used to make sure they are drawn correctly on the player's screen based on the player's camera offset
+        self.keys = pygame.key.get_pressed() # The list storing which keys have been pressed
+        self.player = Player(600,300,self) # The player object in the game world
+        self.sword = Sword() # The player's sword
+        self.island = Island((0, 255, 60,50),1000,750,450,self)#The object representing the island in the game world.
+        self.enemies = [] # The list which stores all enemies, including regular enemies and viruses
+        self.viruses = [] # The list containing all the viruses
+        self.current_enemy_id = 0 # The current enemy id, incremented by one every time an enemy is created, gives each enemy a unique id
+        self.trees = [Tree(random.randint(-200,1550),random.randint(-350,1250)) for i in range(15)] # A list of tree objects randomly generated at random places
+        self.targets = [] # A list containing all the targets in the game world
         self.key_g_held_down = False
-        self.key_g_not_pressed = True
-        self.active_grenades = []
-        self.camera_follow = BoundingBox(world=self)
-        self.health_bar = Health_bar(self)
-        self.current_wave = 1
-        self.victory = False
+        self.key_g_not_pressed = True # Two booleans holding the value of whether the G key is being held down, and whether the G key is not being pressed (useful for detecting when the G key is both pressed and released)
+        self.active_grenades = [] # A list containing the active grenades in the world
+        self.camera_follow = BoundingBox(world=self) # A BoundingBox object representing the region in which the player should move with the world stationary on the screen. Or if the player should remain still and the world should move around them instead
+        self.health_bar = Health_bar(self) # A health bar object representing how much health the player has on the player's screen
+        self.current_wave = 1 # The current wave the game is on
+        self.victory = False # Whether the player has won or not
 
-        self.widgets = []
-        self.active_widgets = []
+        self.widgets = [] # A list of all widgets in the game
+        self.active_widgets = [] # A list of all the active widgets in the game, (active widgets should be drawn on the screen and active button widgets can be interacted with by the player)
 
 
         self.laser_charge_text_box = Text_box(600,750,300,100,(255,255,255),str(self.player.laser_charge)+"%",False,self)
         self.laser_status_text_box = Text_box(600,850,300,50,(255,255,255),"Laser not ready",False,self)
+        # Two text box objects representing the player's laser charge on the screen and the status of the player's laser
 
-        self.players = [self.player]
         self.frames = 0
-        self.seconds = 0
-        self.text_surface = None
-        self.bullet_system = Bullet_trail(self)
+        self.seconds = 0 # Attributes representing the number of seconds and number of frames that have passed since the start of thegame
+        self.bullet_system = Bullet_trail(self) # A Bullet_trail object representing the player's gun
 
         self.gunshot = pygame.mixer.Sound(os.path.join('sounds','Gunshot.wav'))
         self.gunshot.set_volume(0.1)
@@ -982,6 +925,7 @@ class GameWorld:
         self.grenade_explosion.set_volume(0.1)
         self.laser_sfx = pygame.mixer.Sound(os.path.join('sounds','energy_beam.wav'))
         self.laser_sfx.set_volume(0.1)
+        # Various sound effects used throughout the game
 
         self.ss = pygame.mixer.Sound(os.path.join('sounds', 'SneSni.wav'))
         self.am = pygame.mixer.Sound(os.path.join('sounds', 'AMis.wav'))
@@ -989,65 +933,84 @@ class GameWorld:
         self.qd = pygame.mixer.Sound(os.path.join('sounds', 'QuiDog.wav'))
         self.SoTI = pygame.mixer.Sound(os.path.join('sounds', 'SoTI.wav'))
         self.music_played = False
+        # The soundtracks that play throughout the game
 
         self.running = True
         self.main_menu = True
         self.tutorial_selected = True
+        # Booleans declaring whether the game is running, whether the player is in the main_menu, and whether the player wants to play the tutorial
 
         self.start_button = StartButton(450,600,300,100,(255,255,255),"start",self)
+        # Button object used to start the game
 
         self.settings_button = SettingsButton(850,600,300,100,(255,255,255),"settings",self)
         self.settings_open = False
+        # Button used to open the settings menu
 
         self.restart_button = RestartButton(1050,350,370,100,(255,255,255),"click here to restart",self)
         self.restart_button.active = False
         self.restarted = False
+        # Button used to restart the game
 
         self.enemies_text_box = Text_box(450,300,300,75,(255,255,255),"enemies",False,self)
         self.enemies_counter = Text_box(550,400,100,50,(255,255,255),"1",True,self)
+        # Text box and adjustable counter allowing the player to change the number of enemies on wave 1
 
         self.viruses_text_box = Text_box(450,500,300,75,(255,255,255),"viruses",False,self)
         self.viruses_counter = Text_box(550,600,100,50,(255,255,255),"0",True,self)
-        self.virus_count = int(self.viruses_counter.text)
+        # Text box representing number of viruses that should spawn on wave one, able to be adjusted by the player in the settings menu
 
         self.back_button = BackButton(50,50,100,70,(255,255,255),"<",self)
+        # Button allowing the player to return to the original main menu from the settings menu
 
         self.congrats = Text_box(450,100,200,100,(255,255,255),"congrats",False,self)
+        # A test box congratulating the player (shown upon reaching wave 10)
 
         self.you_lose = Text_box(450,100,200,100,(255,255,255),"you lose",False,self)
+        # A text box telling the player they have lost (shown upon player death)
 
-        self.enemies_defeated = Text_box(450,200,500,100,(255,255,255),"Enemies defeated: 0",False,self)
+        self.enemies_defeated = Text_box(450,200,500,100,(255,255,255),"Total enemies defeated: 0",False,self)
         self.enemies_defeated_count = 0
+        # A text box showing how many enemies have died since the game began
 
         self.grenades_launched = Text_box(450,300,500,100,(255,255,255),"Grenades launched: 0",False,self)
         self.grenades_launched_count = 0
+        # A text box showing how many grenades have been launched since the game began
 
         self.viruses_defeated = Text_box(450,400,500,100,(255,255,255),"Viruses defeated: 0",False,self)
         self.viruses_defeated_count = 0
+        # A text box showing how many viruses were defeated since the game began
 
-        self.bacteria_defeated = Text_box(450,500,500,100,(255,255,255),"Bacteria defeated: 0",False,self)
-        self.bacteria_defeated_count = 0
+        self.regular_enemies_defeated = Text_box(450, 500, 500, 100, (255, 255, 255), "Regular enemies defeated: 0", False, self)
+        self.regular_enemy_defeated_count = 0
+        # A text box recording how many regular enemies have been defeated
 
         self.shots_fired = Text_box(450,600,500,100,(255,255,255),"Shots fired: 0",False,self)
         self.shots_fired_count = 0
+        # Text box recording how many shots the player has fired with their gun since the start of the game
 
         self.waves_reached = Text_box(450,700,500,100,(255,255,255),"Wave reached: 1",False,self)
+        # A text box showing how many wave the player reached before they died (Only showed on game loss)
 
         self.wave_text_box = Text_box(50,25,250,50,(255,255,255),"wave 1",False,self)
         self.wave_text_box.active = False
         self.next_wave_time = Text_box(50,100,200,75,(255,255,255),"0:05",False,self)
         self.next_wave_time.active = False
+        # Two text boxes that declare to the player what the current wave is, and when the next wave will begin
 
-        self.msf = Text_box(900,300,500,100,(255,255,255),"Are you sure about this?",False,self)
-        self.emsf = Text_box(900,450,500,100,(255,255,255),"The game is going to be impossible",False,self)
-        self.eemsf = Text_box(900,600,500,100,(255,255,255),"Well, you asked for it",False,self)
+        self.warning_1 = Text_box(900, 300, 500, 100, (255, 255, 255), "Are you sure about this?", False, self)
+        self.warning_2 = Text_box(900, 450, 500, 100, (255, 255, 255), "The game is going to be impossible", False, self)
+        self.warning_3 = Text_box(900, 600, 500, 100, (255, 255, 255), "This number of enemies is not recommended", False, self)
+        # Warning text boxes that are shown if the player selects a high number of enemies
 
         self.tutorial_surface = pygame.Surface((1500,900))
+        # The surface that covers the screen transparently when
 
         self.tutorial_stage = 0
+        # The current stage of the tutorial
 
-        self.tutorial_active = True
-        self.tutorial_selected = True
+        self.tutorial_active = True # Whether the tutorial should be shown on the screen
+        self.tutorial_selected = True # Whether the player has selected they would like to play with the tutorial
 
         self.click_to_continue = Text_box(1050,750,400,100,(255,255,255),"Click anywhere to continue",False,self)
 
@@ -1056,11 +1019,13 @@ class GameWorld:
         self.tutorial_gun = Text_box(850,600,300,100,(255,255,255),"left click to shoot",False,self)
 
         self.tutorial_sword = Text_box(250,600,400,100,(255,255,255),"right click to swing sword",False,self)
-        self.tutorial_grenade = Text_box(850,600,400,100,(255,255,255),"press g to launch a grenade",False,self)
+        self.tutorial_grenade = Text_box(850,600,400,100,(255,255,255),"press G to launch a grenade",False,self)
 
-        self.tutorial_laser = Text_box(425,600,650,100,(255,255,255),"Hold f to fire laser when charge is over 50%",False,self)
+        self.tutorial_laser = Text_box(425,600,650,100,(255,255,255),"Hold F to fire laser when charge is over 50%",False,self)
+        # Text boxes displaying various information about how certain weapons are controlled by the player in the game
 
         self.current_time_after_wave_began = 0
+        # Records how long the wave has been going on for
 
 
     def handle_inputs(self):
@@ -1074,13 +1039,16 @@ class GameWorld:
                     if not self.tutorial_active:
                         self.bullet_system.create_shot(self.player, pygame.mouse.get_pos(), 0.1)
                         self.bullet_system.check_hit(self.enemies)
+                        # Create a list of hit-boxes between the player and their mouse position and then check if there is a collision with a valid target (e.g. Enemy or Tree)
 
                         pygame.mixer.find_channel(True).play(self.gunshot)
+                        # Play the gunshot sound effect
 
                         self.handle_buttons()
-                    # print(enemy.health)
+                        # Check if any buttons are being pressed
                     else:
                         self.tutorial_stage += 1
+                        # Progress the tutorial stage
 
 
                 if event.button == 3:
@@ -1088,39 +1056,49 @@ class GameWorld:
                     pygame.mixer.find_channel(True).play(self.sword_sfx)
 
                     mouse_pos = pygame.mouse.get_pos()
+                    # Play the sword sound effect and determine the player's mouse position
 
                     self.sword.xvector = mouse_pos[0] - self.player.cx
                     self.sword.yvector = mouse_pos[1] - self.player.cy
+                    # Get the vector between the player's position and their mouse position
 
                     magnitude = math.sqrt(self.sword.xvector ** 2 + self.sword.yvector ** 2)
+                    # Get the magnitude of the vector using the pythagorean theorem
 
                     self.sword.xvector = self.sword.xvector / magnitude
                     self.sword.yvector = self.sword.yvector / magnitude
+                    # Divide each vector by the magnitude to normalise the vector
 
                     self.sword.cx = self.player.cx + (self.sword.xvector * 30)
                     self.sword.cy = self.player.cy + (self.sword.yvector * 30)
                     self.sword.wcx = self.player.wcx + (self.sword.xvector * 30)
                     self.sword.wcy = self.player.wcy + (self.sword.yvector * 30)
+                    # Set the sword object part way along the normalised vector
 
                     self.sword.draw(self.screen)
                     self.sword.check_hit(self.enemies,self)
+                    # Draw the sword object on the game screen and check if the sword has collided with anything
 
         self.key_g_held_down,self.key_g_not_pressed = self.handle_grenade_logic(self.key_g_held_down, self.key_g_not_pressed)
+        # Handle the grenade logic, while preserving the state of whether the G key is being held down and whether the G key has not been pressed yet
 
         self.handle_laser_inputs()
+        # Handle the F key input and determine how the laser weapon should respond
 
         if not self.tutorial_active:
             self.handle_movement() # Handles player movement
 
     def initialize_enemies(self,enemy_count,virus_count):
         """ Creates enemies and adds them to the list of viruses and enemies """
-        for i in range(enemy_count):  # How many enemies
+        for i in range(enemy_count):  # How many enemies should be created
             self.enemies.append(Enemy(random.randint(0, 750), random.randint(0, 450), self.current_enemy_id,self))
             self.current_enemy_id += 1
+            # Create an enemy in a random position and increment the current enemy id, so that the next enemy has a unique id
 
-        for i in range(virus_count):  # How many viruses
+        for i in range(virus_count):  # How many viruses should be created
             self.viruses.append(Virus(self.current_enemy_id,self))
             self.current_enemy_id += 1
+            # Create a virus and increment the enemy id by one so each virus has a unique id
 
     def update_collision_hitboxes(self):
         """ Updates the walking spots of the player as they move around the world """
@@ -1147,29 +1125,36 @@ class GameWorld:
                     self.active_widgets.append(button.plus_button)
                     self.active_widgets.append(button.minus_button)
 
+        # Empty the list of active widgets and add every widget flagged as "active" to the list
+
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
                 self.running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.handle_buttons()
+        # Handle buttons when the player clicks
+
 
         if self.player.health <= 0:
             self.music_played = False
             self.handle_soundtrack()
+            # Tell the game to handle the soundtrack when the player has died
 
         if int(self.viruses_counter.text) + int(self.enemies_counter.text) >= 27 and self.settings_open:
-            self.msf.active = True
+            self.warning_1.active = True
         else:
-            self.msf.active = False
+            self.warning_1.active = False
         if int(self.viruses_counter.text) + int(self.enemies_counter.text) >= 37 and self.settings_open:
-            self.emsf.active = True
+            self.warning_2.active = True
         else:
-            self.emsf.active = False
+            self.warning_2.active = False
         if int(self.viruses_counter.text) + int(self.enemies_counter.text) >= 47 and self.settings_open:
-            self.eemsf.active = True
+            self.warning_3.active = True
         else:
-            self.eemsf.active = False
+            self.warning_3.active = False
+
+        # Show warning to the player depending on the number of enemies they have selected
     def draw_island_and_background(self):
         """ Draws the island and the background """
         self.screen.fill((107, 191, 255))
@@ -1183,7 +1168,7 @@ class GameWorld:
         for enemy in self.enemies:
             enemy.draw(self.screen)
 
-        self.trees = sorted(self.trees,key=lambda tree:tree.cy) #Order trees so that the ones with the lowest coordinates are drawn first
+        self.trees = sorted(self.trees,key=lambda tree:tree.cy) #Order trees so that the ones with the highest y coordinates are drawn first
 
         for tree in self.trees:
             tree.draw(self.screen)
@@ -1195,7 +1180,7 @@ class GameWorld:
                 enemy.sword_target.draw()
             if not enemy.sword_stunned:
                 if enemy.type == "e":
-                    enemy.beeline(self.player)
+                    enemy.beeline(self.player) # Regular enemies should move towards the player
                 else:
                     enemy.velocity = 1
                     if enemy.deciding_where:
@@ -1203,44 +1188,52 @@ class GameWorld:
                         self.objects.append(enemy.target)
                         enemy.counter = 3
                         enemy.deciding_where = False
+                        # The enemy determines a target at a random position around them
                         if calc_distance(enemy.target,self.island) > 0:
                             enemy.deciding_where = True
+                            # If the position is not on the island, the code above is re-run and a new target is created
                     else:
                         if debugging:
                             enemy.target.draw(self.screen)
                         enemy.beeline(enemy.target)
-                        enemy.counter -= (1/FPS)
+                        enemy.counter -= (1/FPS) # Decrement a timer counting how long the enemy has been following a specific target
+                        # Have the enemy move towards the target they previously created
                         if enemy.counter <= 0:
                             enemy.deciding_where = True
+                            # Create a new target to move towards after 3 seconds
             else:
                 enemy.velocity = 3
-                enemy.beeline(enemy.sword_target)  # Composition
+                enemy.beeline(enemy.sword_target)
                 enemy.recover_from_sword()
+                # When the enemy has been hit by the sword, have them move towards their sword target and then have them recover from the sword.
 
     def handle_grenade_logic(self, key_g_held_down, key_g_not_pressed):
         """ Calls the grenade's methods depending on the player's inputs of the G key """
         mouse_pos = (0,0)
         if key_g_held_down and key_g_not_pressed:
-            print("Created grenade")
             self.active_grenades.append(Grenade_v2(self))
             self.objects.append(self.active_grenades[-1])
             key_g_not_pressed = False
+            # When the G key is pressed down initially, create a grenade object and append it to the list of active grenades
         if key_g_held_down and self.active_grenades:
-            print("Grenade cooking")
             self.active_grenades[-1].cook()
+            # While the G key is being held down, decrement the fuse timer of each grenade
         if self.keys[pygame.K_g]:
             key_g_held_down = True
         else:
             key_g_held_down = False
+        # Record when the G key is being held down
+
         if not key_g_held_down and key_g_not_pressed == False:
             mouse_pos = pygame.mouse.get_pos()
             mouse_pos = (mouse_pos[0] + self.camera_follow.cam_cx, mouse_pos[1] + self.camera_follow.cam_cy)
-            print("Key g just released")
             if self.active_grenades:
                 self.active_grenades[-1].throw(self.player, mouse_pos)
             key_g_not_pressed = True
+            # Have the grenade move towards the player's mouse position when the G key has been released
 
         for grenade in self.active_grenades:
+            # Handle the grenade being thrown and the grenade exploding by calling the respective methods
             if grenade.exploded:
                 print("Grenade exploded")
                 self.active_grenades.remove(grenade)
@@ -1248,23 +1241,28 @@ class GameWorld:
                 grenade.throw(self.player, mouse_pos)
 
         return key_g_held_down, key_g_not_pressed
+        # Return values back to the main game object
 
     def handle_laser_inputs(self):
-        channel = pygame.mixer.Channel(19)
         """ Calls the player's laser methods, depending on the user's input of the F key """
+        channel = pygame.mixer.Channel(19)
         if not self.tutorial_active:
             if self.player.firing_laser:
                 self.player.fire_laser()
                 self.player.check_laser_hit(self.enemies)
                 self.player.decrease_laser_charge()
+                # Decrease the laser charge while the laser is being fired
             elif self.keys[pygame.K_f] and self.player.laser_charge > 50:
                 self.player.firing_laser = True
                 channel.play(self.laser_sfx, -1)
+                # Play the laser sound effect while the laser is being fired
             if (not self.keys[pygame.K_f] or self.player.laser_charge <= 0) and self.player.firing_laser:
                 self.player.firing_laser = False
                 channel.stop()
+                # Stop the sound effect when the player stops firing their laser
             if not self.player.firing_laser and self.player.laser_charge <= 99:
                 self.player.increase_laser_charge()
+                # Increment the player's laser charge when they are not firing their laser
 
     def handle_movement(self):
         """ Handles player's movement, depending on what movement keys the player has pressed down """
@@ -1272,38 +1270,46 @@ class GameWorld:
             self.player.sprinting = 2
         else:
             self.player.sprinting = 1
-        self.player.check_walkable(self.trees)
-        move_ticker = 0
+        # Detect if the player is sprinting or not
+        self.player.check_walkable(self.trees) # Check if the player can walk given the trees in the game world
+        move_ticker = 0 # Set timer that records how over the player can move one step
         if self.keys[
             pygame.K_w] and self.player.up_walkable and self.player.upright_walkable and self.player.upleft_walkable:
             if move_ticker == 0:
+                # If the player is holding W and can move in that direction, they should do so
                 move_ticker = self.player.move_up(self.player.in_camera)
 
                 if self.keys[
                     pygame.K_a] and self.player.left_walkable and self.player.upleft_walkable and self.player.downleft_walkable:
+                    #If the player is holding W and A, they should move up and left
                     self.player.move_up_and_left(self.player.in_camera)
                 if self.keys[
                     pygame.K_d] and self.player.right_walkable and self.player.upright_walkable and self.player.downright_walkable:
+                    # If the player is holding W and D, they should move up and right
                     self.player.move_up_and_right(self.player.in_camera)
         if self.keys[
             pygame.K_s] and self.player.down_walkable and self.player.downleft_walkable and self.player.downright_walkable:
             if move_ticker == 0:
+                # If the player is hold S, and they can move in that direction, they should do so
                 move_ticker = self.player.move_down(self.player.in_camera)
-                # print("Moving down")
                 if self.keys[
                     pygame.K_a] and self.player.left_walkable and self.player.upleft_walkable and self.player.downleft_walkable:
+                    # If the player is holding S and A, and they can move in that direction, then they move down and left
                     self.player.move_down_and_left(self.player.in_camera)
                 if self.keys[
                     pygame.K_d] and self.player.right_walkable and self.player.upright_walkable and self.player.downright_walkable:
+                    # If the player is holding S and D, they should move down and right if they can do so
                     self.player.move_down_and_right(self.player.in_camera)
         if self.keys[
             pygame.K_a] and self.player.left_walkable and self.player.upleft_walkable and self.player.downleft_walkable:
             if move_ticker == 0:
-                move_ticker = self.player.move_left(self.player.in_camera)
+                self.player.move_left(self.player.in_camera)
+                # If the player can move left and the A key is being held down, they should move left
         if self.keys[
             pygame.K_d] and self.player.right_walkable and self.player.upright_walkable and self.player.downright_walkable:
             if move_ticker == 0:
-                move_ticker = self.player.move_right(self.player.in_camera)
+                self.player.move_right(self.player.in_camera)
+                # If the player can move right and the D key is being held down, they should move right
 
     def update_frames_and_time(self):
         """ Increment's the number of frames and calculates the number of seconds that have passed since the
@@ -1391,7 +1397,6 @@ class GameWorld:
                         self.main_menu = True
                     self.wave_text_box.update(f"wave {self.current_wave}")
                     if (self.current_wave + 1) % 2 == 0:
-                        self.virus_count += 1
                         self.music_played = False
                     self.next_wave_time.active = False
                     self.initializing_next_wave = True
@@ -1416,8 +1421,8 @@ class GameWorld:
         if self.main_menu:
             self.grenades_launched.update("Grenades launched: "+str(self.grenades_launched_count))
             self.shots_fired.update("Shots fired: "+str(self.shots_fired_count))
-            self.enemies_defeated.update("Enemies defeated: "+str(self.enemies_defeated_count))
-            self.bacteria_defeated.update("Bacteria defeated: "+str(self.bacteria_defeated_count))
+            self.enemies_defeated.update("Total enemies defeated: "+str(self.enemies_defeated_count))
+            self.regular_enemies_defeated.update("Regular enemies defeated: " + str(self.regular_enemy_defeated_count))
             self.viruses_defeated.update("Viruses defeated: "+str(self.viruses_defeated_count))
 
         if self.victory:
@@ -1427,7 +1432,7 @@ class GameWorld:
             self.congrats.active = True
             self.grenades_launched.active = True
             self.enemies_defeated.active = True
-            self.bacteria_defeated.active = True
+            self.regular_enemies_defeated.active = True
             self.viruses_defeated.active = True
             self.shots_fired.active = True
             self.restart_button.active = True
@@ -1439,7 +1444,7 @@ class GameWorld:
             self.you_lose.active = True
             self.grenades_launched.active = True
             self.enemies_defeated.active = True
-            self.bacteria_defeated.active = True
+            self.regular_enemies_defeated.active = True
             self.viruses_defeated.active = True
             self.shots_fired.active = True
             self.waves_reached.active = True
