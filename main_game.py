@@ -996,7 +996,7 @@ class GameWorld:
 
         self.warning_1 = Text_box(900, 300, 500, 100, (255, 255, 255), "Are you sure about this?", False, self)
         self.warning_2 = Text_box(900, 450, 500, 100, (255, 255, 255), "The game is going to be impossible", False, self)
-        self.warning_3 = Text_box(900, 600, 500, 100, (255, 255, 255), "This number of enemies is not recommended", False, self)
+        self.warning_3 = Text_box(775, 600, 700, 100, (255, 255, 255), "This number of enemies is not recommended", False, self)
         # Warning text boxes that are shown if the player selects a high number of enemies
 
         self.tutorial_surface = pygame.Surface((1500,900))
@@ -1240,7 +1240,7 @@ class GameWorld:
 
     def handle_laser_inputs(self):
         """ Calls the player's laser methods, depending on the user's input of the F key """
-        channel = pygame.mixer.Channel(19)
+        laser_channel = pygame.mixer.Channel(19)
         if not self.tutorial_active:
             if self.player.firing_laser:
                 self.player.fire_laser()
@@ -1249,11 +1249,11 @@ class GameWorld:
                 # Decrease the laser charge while the laser is being fired
             elif self.keys[pygame.K_f] and self.player.laser_charge > 50:
                 self.player.firing_laser = True
-                channel.play(self.laser_sfx, -1)
+                laser_channel.play(self.laser_sfx, -1)
                 # Play the laser sound effect while the laser is being fired
             if (not self.keys[pygame.K_f] or self.player.laser_charge <= 0) and self.player.firing_laser:
                 self.player.firing_laser = False
-                channel.stop()
+                laser_channel.stop()
                 # Stop the sound effect when the player stops firing their laser
             if not self.player.firing_laser and self.player.laser_charge <= 99:
                 self.player.increase_laser_charge()
