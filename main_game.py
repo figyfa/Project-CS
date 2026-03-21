@@ -126,7 +126,6 @@ class Plus_button(Widget):
 
     def execute_command(self):
         """ Increments the value in parent's text box by 1 """
-        print(self.text_box.text)
         self.text_box.text = str(int(self.text_box.text)+1)
 
 class Minus_button(Widget):
@@ -138,7 +137,6 @@ class Minus_button(Widget):
     def execute_command(self):
         """ Decrements the value in parent's text box by 1 '"""
         if self.text_box.text != "0":
-            print(self.text_box.text)
             self.text_box.text = str(int(self.text_box.text)-1)
 
 class Text_box(Widget):
@@ -467,7 +465,6 @@ class Player:
             self.colour = (0,255 * (self.max_health - self.health)/self.max_health,0)
             return False # Returns False if the player is alive, (main menu should not be activated)
         else:
-            print("Game over")
             for widget in self.world.widgets:
                 widget.active = False
             return True # Returns True if the player is dead, (main menu should be activated if played has died)
@@ -646,6 +643,7 @@ class Enemy:
         else:
             self.wcx -= self.vx * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
             self.wcy -= self.vy * self.can_move * (1 + ((self.enemies_nearby) * 0.2))
+        # Multiply velocity vector by (1 + (number of nearby enemies) * 0.2), causing the enemy to speed up when other enemies are nearby it
             
         # Apply vector to enemies coordinates, moving them towards the target specified in the argument
 
@@ -746,7 +744,6 @@ class Grenade_v2:
 
             self.target = (target[0],target[1]) # Initialise target attribute with the target argument given
 
-        print("throwing",self.thrown)
         pygame.draw.circle(self.world.screen, self.colour, (self.cx,self.cy),self.actual_radius)
         self.dy = self.dy * 0.99
         self.dx = self.dx * 0.99 # Slowly decelerate the grenade over time
@@ -773,7 +770,6 @@ class Grenade_v2:
 
     def explode(self):
         """ Have the grenade explode, damaging anything around it """
-        print("exploding")
         pygame.mixer.find_channel(True).play(self.world.grenade_explosion)
         self.exploded = True
         pygame.draw.circle(self.world.screen, self.colour, (self.cx, self.cy), self.radius)
@@ -885,7 +881,7 @@ class GameWorld:
         # Initialise the menu screen, and the screen where the gameplay would take place
 
         self.seconds_passed = 0
-        self.current_time = 0 # Variables used to record the time at which an event has happened and how many seconds have passed since the event occurred
+        self.current_time_wave_ended = 0 # Variables used to record the time at which an event has happened and how many seconds have passed since the event occurred
         self.initializing_next_wave = True # Variable used to handle code which should be called only one when the wave has just ended
         self.objects = [] # The list of all objects in the game world, used to make sure they are drawn correctly on the player's screen based on the player's camera offset
         self.keys = pygame.key.get_pressed() # The list storing which keys have been pressed
@@ -1235,7 +1231,6 @@ class GameWorld:
         for grenade in self.active_grenades:
             # Handle the grenade being thrown and the grenade exploding by calling the respective methods
             if grenade.exploded:
-                print("Grenade exploded")
                 self.active_grenades.remove(grenade)
             elif grenade.thrown:
                 grenade.throw(self.player, mouse_pos)
@@ -1327,19 +1322,18 @@ class GameWorld:
         """ Calls key functions to reset certain objects in the game world and also checks to see if a new wave should
         start or if the player has won or lost the game"""
 
-        self.bullet_system.clean_shot()
-        self.main_menu = self.player.update_health()
-        self.health_bar.draw(self.screen,self)
+        self.bullet_system.clean_shot() # Remove any hit-boxes generated if the player shot the gun in the last frame
+        self.main_menu = self.player.update_health() # Activate the main menu if the player has died
+        self.health_bar.draw(self.screen,self) # Draw the health bar onto the screen
 
         self.active_widgets = []
 
         for button in self.widgets:
             if button.active:
                 self.active_widgets.append(button)
+        # Check for any active buttons and append them to the active_widgets list
 
-        #print(self.active_widgets)
-
-        self.draw_buttons(self.screen)
+        self.draw_buttons(self.screen) #Draw all active widgets onto the screen
 
         self.laser_charge_text_box.update(str(self.player.laser_charge) + "%")
         if self.player.firing_laser:
@@ -1351,72 +1345,87 @@ class GameWorld:
         else:
             self.laser_status_text_box.update("Laser ready")
             self.laser_status_text_box.color = (0,255,0)
+        # Update the laser charge and laser status text boxes, allowing the player to see the status of
+        # the laser and whether it is ready to fire
 
         for enemy in self.enemies:
             enemy.evaluate_health()
             enemy.scan_for_friendlies(self.enemies)
-            # print(enemy.health)
         for virus in self.viruses:
             if virus.health > 0:
                 self.current_enemy_id = virus.clone_if_can(self.enemies, self.current_enemy_id)
                 virus.decrement_cooldown()
             virus.evaluate_health()
             virus.scan_for_friendlies(self.enemies)
-        self.camera_follow.scan_for_player(self.player)
+        # Evaluate the health for each enemy and virus, let enemies scan for friendlies to correctly apply the movement speed increase
+        # Have the virus create another enemy if it is able to, and decrement its cooldown every frame
+
+        self.camera_follow.scan_for_player(self.player) # Check to see if the player is entering or exiting the bounding box
         self.update_collision_hitboxes()
         self.player.walking_spots = [self.player.left, self.player.right, self.player.down, self.player.up,
                                       self.player.upleft, self.player.downleft, self.player.downright,
                                       self.player.upright]
+        # Update the list of walking_spots for the player with their correct position based on where the player currently is
+
         if not self.player.in_camera:
             self.player.hcx = self.player.cx
             self.player.hcy = self.player.cy
+        # Set player's heading coordinates to their current position, so that the game can detect when the player is
+        # moving back into the bounding box
 
-        self.bullet_system.decrement_cooldown(0.1)
+        self.bullet_system.decrement_cooldown(0.1) # Decrease the cooldown for how long the player must wait before being able to shoot the gun again
 
         if not self.enemies:
             if self.initializing_next_wave:
-                print("Wave cleared")
                 self.next_wave_time.active = True
-                self.current_time = self.seconds
+                self.current_time_wave_ended = self.seconds
                 self.initializing_next_wave = False
                 self.next_wave_time.active = True
-            if (self.seconds - self.current_time) >= 1:
-                self.current_time = self.seconds
-                self.seconds_passed += 1
-                self.next_wave_time.update(f"0:0{int(5 - self.seconds_passed)}")
+                # Show the next wave timer and record the current time the wave ended
+            if (self.seconds - self.current_time_wave_ended) >= 1:
+                self.current_time_wave_ended = self.seconds
+                self.seconds_passed += 1 # Count the number of seconds that have passed since the end of the last wave
+                self.next_wave_time.update(f"0:0{int(5 - self.seconds_passed)}") # Update timer text box so player can see how much time is left before the next wave begins
                 if self.seconds_passed >= 5:
                     self.seconds_passed = 0
                     self.current_time_after_wave_began = 0
                     self.next_wave_time.update(f"0:0{int(5 - self.seconds_passed)}")
                     self.current_wave += 1
+                    # Increment current wave and reset wave timer.
 
-                    self.waves_reached.update(f"Waves reached: {self.current_wave}")
+                    self.waves_reached.update(f"Waves reached: {self.current_wave}") # Update current wave tracker
                     if self.current_wave == 11:
-                        print("Victory")
                         self.victory = True
                         self.main_menu = True
+                        # The player has survived wave 10, they have won and should be returned to the main menu
                     self.wave_text_box.update(f"wave {self.current_wave}")
+                    # Update the wave text box showing what wave the player is currently on
                     if (self.current_wave + 1) % 2 == 0:
                         self.music_played = False
+                        # Every second wave declare that music has not been played, causing the music to be handled again,
+                        # which chooses the correct soundtrack to play for the current wave
                     self.next_wave_time.active = False
                     self.initializing_next_wave = True
+                    # Reset attributes as the next wave has begun and the timer should no longer be visible to the player
                     self.enemies_counter.text = str(int(self.enemies_counter.text) + 1)
-                    self.viruses_counter.text = str(int(self.viruses_counter.text) + 1)
-                    self.initialize_enemies(int(world.enemies_counter.text), int(world.viruses_counter.text))
+                    self.viruses_counter.text = str(int(self.viruses_counter.text) + 1) # Add 1 to the number of enemies and viruses that were spawned last wave
+                    self.initialize_enemies(int(world.enemies_counter.text), int(world.viruses_counter.text)) # Initialise the enemies for the next wave
                     self.objects = []
-                    self.initialise_world_objects()
+                    self.initialise_world_objects() # Reinitialise the objects in the world, including the newly spawned enemies
 
         self.current_time_after_wave_began += (1/FPS)
         #Handle subsequent tutorial messages
         if self.current_wave == 2 and self.tutorial_selected and self.current_time_after_wave_began == (2/FPS):
             self.tutorial_stage += 1
             self.tutorial_active = True
+            # Display the second tutorial message
 
         if self.current_wave == 3 and self.tutorial_selected and self.current_time_after_wave_began == (2/FPS):
             self.tutorial_stage += 1
             self.tutorial_active = True
             self.laser_charge_text_box.active = True
             self.laser_status_text_box.active = True
+            # Display the third tutorial message and show the player the laser status and charge on their HUD
 
         if self.main_menu:
             self.grenades_launched.update("Grenades launched: "+str(self.grenades_launched_count))
@@ -1424,9 +1433,9 @@ class GameWorld:
             self.enemies_defeated.update("Total enemies defeated: "+str(self.enemies_defeated_count))
             self.regular_enemies_defeated.update("Regular enemies defeated: " + str(self.regular_enemy_defeated_count))
             self.viruses_defeated.update("Viruses defeated: "+str(self.viruses_defeated_count))
+            # Update statistics if the player is going to go to the main menu
 
         if self.victory:
-            print("You win")
             for widget in self.widgets:
                 widget.active = False
             self.congrats.active = True
@@ -1436,9 +1445,9 @@ class GameWorld:
             self.viruses_defeated.active = True
             self.shots_fired.active = True
             self.restart_button.active = True
+            # Display relevant statistics for winning the game
 
         if self.main_menu and not self.victory:
-            print("You lose")
             for widget in self.widgets:
                 widget.active = False
             self.you_lose.active = True
@@ -1449,6 +1458,7 @@ class GameWorld:
             self.shots_fired.active = True
             self.waves_reached.active = True
             self.restart_button.active = True
+            # Display relavent statistics for losing the game
 
 
 
@@ -1462,7 +1472,7 @@ class GameWorld:
     def allow_debug_options(self):
         """ Allows certain keys to be pressed for debugging """
         if self.keys[pygame.K_UP]:
-            self.player.in_camera = False
+            self.player.in_camera = False #Forcibly set the player's in_camera attribute to false when the up arrow key is pressed
         if self.keys[pygame.K_h]:
             self.player.cx = 600
             self.player.cy = 300
@@ -1472,7 +1482,9 @@ class GameWorld:
             self.player.wcy = 300
             self.camera_follow.cam_cx = 0
             self.camera_follow.cam_cy = 0
+            # Reset the player's position to the starting position when the H key is pressed
         pygame.draw.circle(self.screen, (255, 50, 255), (self.player.hcx, self.player.hcy), 10)
+        # Draw a circle used to represent where the game thinks the player is heading
 
     def initialise_world_objects(self):
         """ Loads all viruses, enemies, targets, trees and the island into the world.objects list """
@@ -1514,28 +1526,28 @@ class GameWorld:
         if self.music_played == False:
             pygame.mixer.stop()
             self.music_played = True
-            if self.player.health <= 0:
-                pass
+            if self.main_menu:
+                pass # Music is stopped and no more music is played
             elif 1 <= self.current_wave <= 2:
                 self.ss.set_volume(0.3)
                 self.ss.play(-1)
-                print("Playing ss")
+                # Play the soundtrack for waves 1 and 2
             elif 3 <= self.current_wave <= 4:
                 self.fad.set_volume(0.3)
                 self.fad.play(-1)
-                print("fad")
+                # Play the soundtrack for waves 3 and 4
             elif 5 <= self.current_wave <= 6:
                 self.qd.set_volume(0.3)
                 self.qd.play(-1)
-                print("qd")
+                # Play the soundtrack for waves 5 and 6
             elif 7 <= self.current_wave <= 8:
                 self.am.set_volume(0.3)
                 self.am.play(-1)
-                print("am")
+                # Play the soundtrack for waves 7 and 8
             else:
                 self.SoTI.set_volume(0.3)
                 self.SoTI.play(-1)
-                print("SoTIs")
+                # Play the soundtrack for any other waves (wave 9 and 10)
 
     def update_tutorial_frames(self):
         """ Updates the widgets used in the tutorial"""
@@ -1563,6 +1575,7 @@ class GameWorld:
             self.screen.blit(self.tutorial_surface, (0, 0))
 
             self.update_tutorial_frames()
+            # Display text boxes teaching the player how to move, sprint and shoot their gun
         elif self.tutorial_stage == 2:
             self.click_to_continue.active = True
             self.tutorial_sword.active = True
@@ -1573,6 +1586,7 @@ class GameWorld:
             self.screen.blit(self.tutorial_surface, (0, 0))
 
             self.update_tutorial_frames()
+            # Display text boxes teaching the player how to use the sword and grenade
 
         elif self.tutorial_stage == 4:
             self.click_to_continue.active = True
@@ -1584,6 +1598,8 @@ class GameWorld:
 
             self.update_tutorial_frames()
 
+            # Display text boxes teaching the player how to use the laser weapon
+
         elif self.tutorial_stage % 2 == 1:
             self.tutorial_movement.active = False
             self.tutorial_gun.active = False
@@ -1593,59 +1609,77 @@ class GameWorld:
             self.click_to_continue.active = False
             self.tutorial_laser.active = False
             self.tutorial_active = False
+            # Deactivate the tutorial screen whenever the tutorial stage is an odd number
 
 
-world = GameWorld()
+world = GameWorld() # Create the game world
 
 
 if world.tutorial_selected:
     world.tutorial_active = True
 else:
     world.tutorial_active = False
+# Activate tutorial if tutorial is selected
 
 while world.running:
 
     if world.main_menu:
-        world.display_menu()
+        world.display_menu() # Display the main menu
 
         if world.restarted == True:
             world = GameWorld()
-            print("Created new game world")
+            # Create a new game world if the player wishes to restart
+
     else:
-        world.update_frames_and_time()
+        world.update_frames_and_time() # Keep the frames and seconds that have passed since the start of the game up to date
 
         world.draw_island_and_background()
 
-        world.handle_inputs()  # Handles left click, right click, g key, f key and movement
+        world.handle_inputs()  # Handles left click, right click, G key, F key and movement
+                               # Allowing the player to shoot, use the sword, throw a grenade, fire their laser, and move respectively
 
         if not world.tutorial_active:
 
             world.draw_bullet_trail()
+            # Draw the gunshot if the player has just shot the gun
 
             world.draw_enemies_player_and_trees()
+            # Draw the enemies, the player, and the trees onto the screen
 
             world.handle_sword_logic()
+            # Handle the enemy's movement, depending on whether they have been hit by the sword or not
 
             world.keys = pygame.key.get_pressed()
+            # Get the keys pressed by the player
 
             world.player.update_position()
+            # Update the player's camera coordinates, depending on their world coordinates and how far the camera has moved
 
             world.player.walking_spot_permissions = [True for i in range(8)]
+            # Reset the player's walking spot permissions to True for all 8 of the player's walking spots
 
             world.update_item_positions_relative_to_camera()
+            # Update the position of the items in the "world.objects" list, generating their camera coordinates from their world coordinates and the camera's offset
 
             world.draw_buttons(world.screen)
+            # Draw any active widgets onto the world screen
 
             if debugging:
-                world.allow_debug_options() # Eg press h to return to initial positions
+                world.allow_debug_options() # e.g. pressing H to return to initial positions
 
             world.reset_and_prepare_for_next_frame()
+            # Prepare for the next frame by performing key functions such as checking if the player is alive and updating the health of the enemies
 
             world.handle_soundtrack()
+            # Play the correct music depending on the wave the player is on
         else:
             world.handle_tutorial()
+            # Display the tutorial to the player if the tutorial screen is currently active
 
         fpsClock.tick(FPS)
+        # Move to the next frame at a rate denoted by the FPS constant
     pygame.display.flip()
+    # Update to the next frame by redrawing the display surface
 
 pygame.quit()
+# Quite the game if the above while loop is ever broken by "world.running" being set to False

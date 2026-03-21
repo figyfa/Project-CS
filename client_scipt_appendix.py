@@ -11,7 +11,7 @@ pygame.init()
 screen = pygame.display.set_mode((1500, 900))
 
 running = True
-pygame.display.set_caption("Client")
+
 debugging = True
 
 FPS = 60
@@ -22,9 +22,6 @@ def calc_distance(pointA, pointB):
 
 def calc_distance_circle_and_point(pointA, pointB):
     return math.sqrt((pointA.wcx - pointB[0]-camera_follow.cam_cx)**2 + (pointA.wcy - pointB[1] - camera_follow.cam_cy)**2) - pointA.radius
-
-def calc_distance_between_circle_and_point_cx(pointA, pointB):
-    return math.sqrt((pointA.cx - pointB[0])**2 + (pointA.cy - pointB[1])**2) - pointA.radius
 
 class Island:
     def __init__(self,colour, radius, cx, cy):
@@ -37,7 +34,6 @@ class Island:
 
     def draw(self):
         pygame.draw.circle(screen, (self.colour), (self.cx, self.cy), self.radius)
-        print("Island drawn")
 
 class Gun:
     def __init__(self):
@@ -100,15 +96,10 @@ class Player:
         elif self.vy < 0:
             self.vy += 0.1
     def draw(self):
-        print(f"I think the players health is: {self.health}")
         pygame.draw.circle(screen, self.colour, (self.wcx-camera_follow.cam_cx, self.wcy-camera_follow.cam_cy),self.radius)
         #print("Player drawn at",self.cx,self.cy)
     def update_health(self):
-        if self.health > 0:
-            self.colour = (0,255 * (self.health/100),0)
-        else:
-            print("Game over")
-            main_menu = True
+        self.colour = (0,255 * (100 - self.health)/100,0)
     def fire_laser(self):
         mouse_pos = pygame.mouse.get_pos()
         mouse_pos = (mouse_pos[0] + camera_follow.cam_cx, mouse_pos[1] + camera_follow.cam_cy)
@@ -141,10 +132,8 @@ class Player:
         for enemy in enemies:
             for circle in self.laser_trail:
                 circle = (circle[0]-camera_follow.cam_cx,circle[1]-camera_follow.cam_cy)
-                print(f"Distance between enemy and laser is {calc_distance_between_circle_and_point_cx(enemy,circle)}")
-                if calc_distance_between_circle_and_point_cx(enemy,circle) < 0:
+                if calc_distance_circle_and_point(enemy,circle) < 0:
                     enemy.health -= 5
-
         self.laser_trail = []
 
 
@@ -154,36 +143,27 @@ class Player2 (Player):
         super().__init__(cx,cy)
 
 
-    def recv_and_send_data(self,user_input,damage_to_target: dict):
-        print(f"Sending {user_input}")
+    def recv_and_send_data(self,user_input):
         my_socket.send(user_input.encode())
 
         print(f"World coordinate: {self.wcx},{self.wcy}")
         # print(f"Sent {user_input}")
-        data = my_socket.recv(1024)
-
-        data = data.decode()
+        data = my_socket.recv(10000).decode()
         print(f"Received {data}")
-        data_processed = True
 
-        data = str(data).split(" ")
+        data = data.split(" ")
         print(data)
-        player.wcx = int(float(data[0]))
-        player.wcy = int(float(data[1]))
-        self.health = int(float(data[2]))
+        player.wcx = float(data[0])
+        player.wcy = float(data[1])
 
         enemies = []
 
-
-
-        for i in range(3, len(data), 4):
+        for i in range(2, len(data), 3):
             # print(data[i+2])
-            if data[i + 3][0] == "e":
-                enemies.append(Enemy(float(data[i])-camera_follow.cam_cx, float(data[i + 1])-camera_follow.cam_cy))
-                enemies[-1].health = int(data[i+2])
-            if data[i + 3][0] == "v":
-                enemies.append(Virus(float(data[i])-camera_follow.cam_cx, float(data[i + 1])-camera_follow.cam_cy))
-                enemies[-1].health = int(data[i+2])
+            if data[i + 2] == "e":
+                enemies.append(Enemy(float(data[i]), float(data[i + 1])))
+            if data[i + 2] == "v":
+                enemies.append(Virus(float(data[i]), float(data[i + 1])))
 
         return enemies
 
@@ -191,12 +171,7 @@ class Player2 (Player):
         player.cx = player.wcx - camera_follow.cam_cx
         player.cy = player.wcy - camera_follow.cam_cy
 
-        #print(f"Rectified data {player.cx} {player.cy}")
-
-    def draw(self):
-        print(f"I think the player 2 health is: {self.health}")
-        pygame.draw.circle(screen, self.colour, (self.wcx - camera_follow.cam_cx, self.wcy - camera_follow.cam_cy),self.radius)
-        # print("Player drawn at",self.cx,self.cy)
+        print(f"Rectified data {player.cx} {player.cy}")
 
 class Enemy:
     def __init__(self,cx,cy):
@@ -235,7 +210,6 @@ class Enemy:
     '''
 
     def evaluate_health(self):
-        print(f"Enemy health before evaluation: {self.health}")
         if 100 >= (self.health) >= 1:
             self.colour =(255,255 * (self.health / 100),255)
             screen.blit(self.image_list[self.health//11], (self.cx-32,self.cy-32))
@@ -350,10 +324,10 @@ class Grenade_v2:
         self.target = (0,0)
 
     def cook(self):
-        self.cx = player2.cx
-        self.cy = player2.cy
-        self.wcx = player2.wcx
-        self.wcy = player2.wcy
+        self.cx = player.cx
+        self.cy = player.cy
+        self.wcx = player.wcx
+        self.wcy = player.wcy
         print("cooking")
         self.detonation_time -= (1/FPS)
         pygame.draw.circle(screen, self.colour, (self.cx, self.cy),self.actual_radius)
@@ -537,11 +511,7 @@ my_font = pygame.font.SysFont('Comic Sans MS', 30)
 text_surface = my_font.render('Waiting for host', False, (0, 0, 0))
 
 viruses = []
-
-my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-my_socket.connect((IP_PROXY, PORT))
-
-main_menu = False
+main_menu = True
 for virus in viruses:
     enemies.append(virus)
 for enemy in enemies:
@@ -550,14 +520,12 @@ bullet_system = Bullet_trail()
 frames = 0
 key_g_held_down = False
 
-damage_instance = {}
 
 data = [player2.wcx,player2.wcy]
 
 while running:
 
     if main_menu:
-        main_menu = False
         menu_screen = pygame.Surface((1500,900))
         menu_screen.fill((255,255,45))
         screen.blit(menu_screen,(0,0))
@@ -567,8 +535,13 @@ while running:
 
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                main_menu = False
+
+        try:
+            my_socket = socket.socket()
+            my_socket.connect((IP_PROXY, PORT))
+            main_menu = False
+        except:
+            pass
         pygame.display.flip()
     else:
 
@@ -586,33 +559,17 @@ while running:
         island.draw()
         player2.draw()
 
-        player2.update_health()
-
         data[0] = player2.wcx
         data[1] = player2.wcy
 
-        user_input = (f"{str(int(data[0]))} {str(int(data[1]))}")
-
-
-        for enemy in enemies:
-            user_input += f" {enemy.health}"
-
+        user_input = (f"{str(data[0])} {str(data[1])}")
         user_input = ''.join(user_input)
 
         if frames % 1 == 0:
-            enemies = player2.recv_and_send_data(user_input,damage_instance)
+            enemies = player2.recv_and_send_data(user_input)
             player2.rectify()
-            damage_instance = {}
 
         player2.rectify()
-
-        print(enemies)
-
-        for enemy in enemies:
-            enemy.evaluate_health()
-            enemy.clean_up()
-            enemy.scan_for_friendlies(enemies)
-            print(f" enemy health is {enemy.health}")
 
 
         if debugging:
@@ -810,7 +767,6 @@ while running:
                     player2.wcx += 3 * player2.sprinting
                     #print("moving right")
 
-        print(f"Cam cx: {camera_follow.cam_cx}, Cam cy: {camera_follow.cam_cy}")
         for enemy in enemies:
             world.objects.append(enemy)
         for virus in viruses:
@@ -853,8 +809,13 @@ while running:
             pygame.draw.circle(screen,(255,50,255),(player2.hcx,player2.hcy),10)
 
         bullet_system.clean_shot()
+        player2.update_health()
 
-
+        for enemy in enemies:
+            enemy.evaluate_health()
+            enemy.clean_up()
+            enemy.scan_for_friendlies(enemies)
+            #print(enemy.health)
 
         for virus in viruses:
             if virus.health > 0:
