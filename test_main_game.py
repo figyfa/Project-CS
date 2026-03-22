@@ -1,4 +1,4 @@
-from main_game import *
+from main import *
 
 pygame.init()
 pygame.font.init()
